@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SYSTEM_API_KEYS, getSavedRotatorIndex, saveRotatorIndex } from './apiKeys';
+const logoImg = "/logo.jpg";
 import { 
   Key, 
   Upload, 
@@ -29,39 +30,39 @@ interface Headline {
 const CATEGORIES = {
   hard: { 
     label: "তথ্যভিত্তিক (Hard News)", 
-    color: "#fc0c00", 
-    borderClass: "border-l-[#fc0c00]", 
-    bgGlow: "hover:shadow-[0_0_15px_rgba(252,12,0,0.15)] hover:border-[#fc0c00]/40" 
+    color: "#e53e3e", 
+    borderClass: "border-l-[#e53e3e]", 
+    bgGlow: "hover:shadow-[0_2px_10px_rgba(229,62,62,0.1)] hover:border-[#e53e3e]/30" 
   },
   quote: { 
     label: "উদ্ধৃতিমূলক (Direct Quote)", 
-    color: "#00b4ff", 
-    borderClass: "border-l-[#00b4ff]", 
-    bgGlow: "hover:shadow-[0_0_15px_rgba(0,180,255,0.15)] hover:border-[#00b4ff]/40" 
+    color: "#3b82f6", 
+    borderClass: "border-l-[#3b82f6]", 
+    bgGlow: "hover:shadow-[0_2px_10px_rgba(59,130,246,0.1)] hover:border-[#3b82f6]/30" 
   },
   warning: { 
     label: "হুঁশিয়ারিমূলক (Warning)", 
-    color: "#ff3838", 
-    borderClass: "border-l-[#ff3838]", 
-    bgGlow: "hover:shadow-[0_0_15px_rgba(255,56,56,0.15)] hover:border-[#ff3838]/40" 
+    color: "#ef4444", 
+    borderClass: "border-l-[#ef4444]", 
+    bgGlow: "hover:shadow-[0_2px_10px_rgba(239,68,68,0.1)] hover:border-[#ef4444]/30" 
   },
   political: { 
     label: "রাজনৈতিক (Political)", 
-    color: "#ffb800", 
-    borderClass: "border-l-[#ffb800]", 
-    bgGlow: "hover:shadow-[0_0_15px_rgba(255,184,0,0.15)] hover:border-[#ffb800]/40" 
+    color: "#f59e0b", 
+    borderClass: "border-l-[#f59e0b]", 
+    bgGlow: "hover:shadow-[0_2px_10px_rgba(245,158,11,0.1)] hover:border-[#f59e0b]/30" 
   },
   curiosity: { 
     label: "কৌতূহলোদ্দীপক (Curiosity)", 
-    color: "#b44dff", 
-    borderClass: "border-l-[#b44dff]", 
-    bgGlow: "hover:shadow-[0_0_15px_rgba(180,77,255,0.15)] hover:border-[#b44dff]/40" 
+    color: "#a855f7", 
+    borderClass: "border-l-[#a855f7]", 
+    bgGlow: "hover:shadow-[0_2px_10px_rgba(168,85,247,0.1)] hover:border-[#a855f7]/30" 
   },
   general: { 
     label: "সাধারণ ভিডিও (General)", 
-    color: "#fc0c00", 
-    borderClass: "border-l-[#fc0c00]", 
-    bgGlow: "hover:shadow-[0_0_15px_rgba(252,12,0,0.1)] hover:border-[#fc0c00]/30" 
+    color: "#e53e3e", 
+    borderClass: "border-l-[#e53e3e]", 
+    bgGlow: "hover:shadow-[0_2px_10px_rgba(229,62,62,0.08)] hover:border-[#e53e3e]/20" 
   }
 };
 
@@ -737,31 +738,31 @@ export default function App() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#090101] text-[#fcebeb] font-ui overflow-hidden flex flex-col w-full z-10 transition-all duration-300">
+    <div className="relative min-h-screen bg-slate-950 text-[#f1f5f9] font-ui overflow-hidden flex flex-col w-full z-10 transition-all duration-300">
       
       {/* ── TICKER BAR (From Mockup) ── */}
-      <div className="ticker h-8 bg-[rgba(252,12,0,0.06)] border-t border-[rgba(252,12,0,0.18)] border-b border-[rgba(252,12,0,0.18)] overflow-hidden flex items-center select-none w-full relative z-20">
-        <div className="ticker-label bg-[#fc0c00] text-white font-logo text-[10px] font-black px-3.5 h-full flex items-center shrink-0 tracking-[1.5px] z-20">
+      <div className="ticker h-8 bg-[rgba(229,62,62,0.06)] border-t border-[rgba(229,62,62,0.15)] border-b border-[rgba(229,62,62,0.15)] overflow-hidden flex items-center select-none w-full relative z-20">
+        <div className="ticker-label bg-[#e53e3e] text-white font-logo text-[10px] font-black px-3.5 h-full flex items-center shrink-0 tracking-[1.5px] z-20">
           LIVE
         </div>
         <div className="ticker-wrap flex overflow-hidden w-full">
           <div className="ticker-track flex gap-[60px] pl-10">
-            <span className="text-[11px] text-[#a68484] font-semibold flex items-center gap-2">
+            <span className="text-[11px] text-[#94a3b8] font-semibold flex items-center gap-2">
               NewsForge AI • বাংলাদেশের প্রথম AI নিউজ হেডলাইন জেনারেটর
             </span>
-            <span className="text-[11px] text-[#a68484] font-semibold flex items-center gap-2">
+            <span className="text-[11px] text-[#94a3b8] font-semibold flex items-center gap-2">
               অডিও/ভিডিও আপলোড করুন • AI বিশ্লেষণ • ৩০+ শিরোনাম তৈরি
             </span>
-            <span className="text-[11px] text-[#a68484] font-semibold flex items-center gap-2">
+            <span className="text-[11px] text-[#94a3b8] font-semibold flex items-center gap-2">
               TV Scroll • Breaking News • Thumbnail Text — সব এক জায়গায়
             </span>
-            <span className="text-[11px] text-[#a68484] font-semibold flex items-center gap-2">
+            <span className="text-[11px] text-[#94a3b8] font-semibold flex items-center gap-2">
               NewsForge AI • বাংলাদেশের প্রথম AI নিউজ হেডলাইন জেনারেটর
             </span>
-            <span className="text-[11px] text-[#a68484] font-semibold flex items-center gap-2">
+            <span className="text-[11px] text-[#94a3b8] font-semibold flex items-center gap-2">
               অডিও/ভিডিও আপলোড করুন • AI বিশ্লেষণ • ৩০+ শিরোনাম তৈরি
             </span>
-            <span className="text-[11px] text-[#a68484] font-semibold flex items-center gap-2">
+            <span className="text-[11px] text-[#94a3b8] font-semibold flex items-center gap-2">
               TV Scroll • Breaking News • Thumbnail Text — সব এক জায়গায়
             </span>
           </div>
@@ -773,10 +774,10 @@ export default function App() {
         {toasts.map(toast => (
           <div
             key={toast.id}
-            className="pointer-events-auto bg-black/90 border-l-4 border-[#fc0c00] text-white text-xs px-4 py-3 rounded-r-lg shadow-2xl flex items-center gap-2 font-ui animate-[slideInCard_0.2s_ease_forwards]"
+            className="pointer-events-auto bg-black/90 border-l-4 border-[#e53e3e] text-white text-xs px-4 py-3 rounded-r-lg shadow-2xl flex items-center gap-2 font-ui animate-[slideInCard_0.2s_ease_forwards]"
           >
-            <Sparkles className="w-4 h-4 text-[#fc0c00] shrink-0" />
-            <span className="font-semibold text-[#fcebeb]">{toast.msg}</span>
+            <Sparkles className="w-4 h-4 text-[#e53e3e] shrink-0" />
+            <span className="font-semibold text-[#f1f5f9]">{toast.msg}</span>
           </div>
         ))}
       </div>
@@ -784,16 +785,16 @@ export default function App() {
       <main className="max-w-[860px] mx-auto px-4 sm:px-6 py-4 pb-24 z-10 relative w-full">
         {/* Sleek top API management pill */}
         <div className="flex justify-end mb-4">
-          <div className="inline-flex items-center gap-2 bg-[rgba(252,12,0,0.06)] border border-[rgba(252,12,0,0.18)] py-1 px-3.5 rounded-full shadow-md text-[11px]">
+          <div className="inline-flex items-center gap-2 bg-[rgba(229,62,62,0.06)] border border-[rgba(229,62,62,0.15)] py-1 px-3.5 rounded-full shadow-md text-[11px]">
             {keySource === 'rotator' ? (
               <>
-                <span className="w-2 h-2 rounded-full bg-[#fc0c00] animate-pulse"></span>
-                <span className="text-[#fc0c00]/90 font-ui font-bold uppercase tracking-wider">সিস্টেম কী রোটেটর সক্রিয় (৮১টি সচল কী)</span>
+                <span className="w-2 h-2 rounded-full bg-[#e53e3e] animate-pulse"></span>
+                <span className="text-[#e53e3e]/90 font-ui font-bold uppercase tracking-wider">সিস্টেম কী রোটেটর সক্রিয় (৮১টি সচল কী)</span>
               </>
             ) : apiKey ? (
               <>
-                <span className="w-2 h-2 rounded-full bg-[#00b4ff] animate-pulse"></span>
-                <span className="text-[#00b4ff] font-ui font-bold uppercase tracking-wider">আমার নিজস্ব API Key সংরক্ষিত</span>
+                <span className="w-2 h-2 rounded-full bg-[#3b82f6] animate-pulse"></span>
+                <span className="text-[#3b82f6] font-ui font-bold uppercase tracking-wider">আমার নিজস্ব API Key সংরক্ষিত</span>
               </>
             ) : (
               <>
@@ -803,7 +804,7 @@ export default function App() {
             )}
             <button
               onClick={() => setShowKeyInput(!showKeyInput)}
-              className="text-[#a68484] hover:text-[#fc0c00] font-ui font-bold hover:underline select-none outline-none cursor-pointer ml-1.5 border-l border-white/10 pl-2 transition-all"
+              className="text-[#94a3b8] hover:text-[#e53e3e] font-ui font-bold hover:underline select-none outline-none cursor-pointer ml-1.5 border-l border-white/10 pl-2 transition-all"
             >
               {showKeyInput ? 'লুকান' : 'পছন্দ করুন'}
             </button>
@@ -813,9 +814,9 @@ export default function App() {
         {/* LOGO AREA STATEMENT (From Mockup UI) */}
         <header className="text-center pt-8 pb-8 select-none relative z-10 flex flex-col items-center animate-fade-in">
           <div className="logo-mark flex items-center gap-4 mb-2 justify-center">
-            <div className="logo-icon logo-pulse-box w-14 h-14 border-2 border-[#fc0c00] rounded-full overflow-hidden flex items-center justify-center bg-black/40 shadow-[0_0_20px_rgba(252,12,0,0.6)]">
+            <div className="logo-icon logo-pulse-box w-14 h-14 border-2 border-[#e53e3e] rounded-full overflow-hidden flex items-center justify-center bg-black/40 shadow-[0_0_15px_rgba(229,62,62,0.35)]">
               <img 
-                src="/logo.jpg" 
+                src={logoImg} 
                 alt="NewsForge Logo" 
                 className="w-full h-full object-cover select-none pointer-events-none"
                 referrerPolicy="no-referrer"
@@ -823,11 +824,11 @@ export default function App() {
             </div>
             <div>
               <div className="logo-text font-logo text-3xl font-black text-white tracking-[3px] uppercase">
-                NEWS<span className="text-[#fc0c00]">FORGE</span>
+                NEWS<span className="text-[#e53e3e]">FORGE</span>
               </div>
             </div>
           </div>
-          <div className="logo-sub font-bangla text-[13.5px] text-[#a68484] tracking-[1.2px] mt-1.5 select-text font-medium">
+          <div className="logo-sub font-bangla text-[13.5px] text-[#94a3b8] tracking-[1.2px] mt-1.5 select-text font-medium">
             AI-চালিত সংবাদ শিরোনাম বিশেষজ্ঞ • Advanced AI Headline Architect
           </div>
         </header>
@@ -843,15 +844,15 @@ export default function App() {
 
         {/* SECTION 7: API KEY MANAGEMENT COMPONENT */}
         {showKeyInput && (
-          <div className="bg-[rgba(5,13,16,0.95)] border border-[rgba(252,12,0,0.22)] rounded-xl p-5 sm:p-6 shadow-2xl mb-8 transition-all animate-[slideInCard_0.22s_ease_forwards]">
-            <div className="flex items-center justify-between mb-4 text-[#fc0c00]">
+          <div className="bg-[rgba(5,13,16,0.95)] border border-[rgba(229,62,62,0.15)] rounded-xl p-5 sm:p-6 shadow-2xl mb-8 transition-all animate-[slideInCard_0.22s_ease_forwards]">
+            <div className="flex items-center justify-between mb-4 text-[#e53e3e]">
               <div className="flex items-center gap-3">
                 <Key className="w-5 h-5" />
                 <h2 className="font-ui text-base sm:text-lg font-bold uppercase tracking-wider">এপিআই কী কন্ট্রোল সেটিংস</h2>
               </div>
               <button 
                 onClick={() => setShowKeyInput(false)}
-                className="text-white/60 hover:text-[#fc0c00] text-xs font-ui underline cursor-pointer"
+                className="text-white/60 hover:text-[#e53e3e] text-xs font-ui underline cursor-pointer"
               >
                 বন্ধ করুন
               </button>
@@ -868,21 +869,21 @@ export default function App() {
                 }}
                 className={`border p-4 rounded-lg cursor-pointer transition-all ${
                   keySource === 'rotator' 
-                    ? 'bg-[rgba(252,12,0,0.08)] border-[#fc0c00]/80 shadow-[0_0_12px_rgba(252,12,0,0.15)]' 
+                    ? 'bg-[rgba(229,62,62,0.06)] border-[#e53e3e]/80 shadow-[0_2px_10px_rgba(229,62,62,0.1)]' 
                     : 'bg-black/40 border-white/10 opacity-60 hover:opacity-90 hover:border-white/20'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[11px] bg-[#fc0c00] text-white px-2 py-0.5 rounded font-logo uppercase font-black tracking-wider shadow">RECOMMENDED</span>
+                  <span className="text-[11px] bg-[#e53e3e] text-white px-2 py-0.5 rounded font-logo uppercase font-black tracking-wider shadow">RECOMMENDED</span>
                   <input 
                     type="radio" 
                     checked={keySource === 'rotator'} 
                     onChange={() => {}} 
-                    className="accent-[#fc0c00] pointer-events-none"
+                    className="accent-[#e53e3e] pointer-events-none"
                   />
                 </div>
                 <h3 className="text-white font-ui font-bold text-sm mb-1">এআই কী রোটেটর (ফ্রি)</h3>
-                <p className="text-[11px] text-[#6b8c72] leading-relaxed">
+                <p className="text-[11px] text-[#94a3b8] leading-relaxed">
                   ৮১টি প্রি-কনফিগার করা সিস্টেম কী পুল। কোনো লিমিট আসলে অটোমেটিক পরবর্তী কী-তে পরিবর্তিত হয়ে রিট্রাই করে। আপনার কোনো কী লাগবে না।
                 </p>
               </div>
@@ -896,21 +897,21 @@ export default function App() {
                 }}
                 className={`border p-4 rounded-lg cursor-pointer transition-all ${
                   keySource === 'custom' 
-                    ? 'bg-[rgba(0,180,255,0.08)] border-[#00b4ff]/80 shadow-[0_0_12px_rgba(0,180,255,0.15)]' 
+                    ? 'bg-[rgba(59,130,246,0.06)] border-[#3b82f6]/80 shadow-[0_2px_10px_rgba(59,130,246,0.1)]' 
                     : 'bg-black/40 border-white/10 opacity-60 hover:opacity-90 hover:border-white/20'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[11px] bg-[#00b4ff] text-black px-2 py-0.5 rounded font-logo uppercase font-black tracking-wider shadow">CUSTOM KEY</span>
+                  <span className="text-[11px] bg-[#3b82f6] text-white px-2 py-0.5 rounded font-logo uppercase font-black tracking-wider shadow">CUSTOM KEY</span>
                   <input 
                     type="radio" 
                     checked={keySource === 'custom'} 
                     onChange={() => {}} 
-                    className="accent-[#00b4ff] pointer-events-none"
+                    className="accent-[#3b82f6] pointer-events-none"
                   />
                 </div>
                 <h3 className="text-white font-ui font-bold text-sm mb-1">আমার নিজস্ব API Key</h3>
-                <p className="text-[11px] text-[#6b8c72] leading-relaxed">
+                <p className="text-[11px] text-[#94a3b8] leading-relaxed">
                   আপনার গুগল এআই স্টুডিও একাউন্ট থেকে আনা ফ্রি Gemini API Key ব্যবহার করে আনলিমিটেড সার্ভিস নিন। এটি ব্রাউজারেই সেভ থাকে।
                 </p>
               </div>
@@ -918,9 +919,9 @@ export default function App() {
 
             {/* Custom Key Edit Input Box only if Custom is selected */}
             {keySource === 'custom' && (
-              <div className="mb-4 bg-black/50 border border-[#00b4ff]/25 rounded-lg p-4 animate-[slideInCard_0.15s_ease_forwards]">
+              <div className="mb-4 bg-black/50 border border-[#3b82f6]/25 rounded-lg p-4 animate-[slideInCard_0.15s_ease_forwards]">
                 <p className="text-xs text-[#6297ae] mb-2.5 font-ui leading-relaxed">
-                  আপনার Gemini API Key নিচে দিন। এটি ব্রাউজারের <span className="text-[#00b4ff]">localStorage</span>-এ নিরাপদে স্টোর থাকবে।
+                  আপনার Gemini API Key নিচে দিন। এটি ব্রাউজারের <span className="text-[#3b82f6]">localStorage</span>-এ নিরাপদে স্টোর থাকবে।
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <input
@@ -928,12 +929,12 @@ export default function App() {
                     value={tempApiKey}
                     onChange={(e) => setTempApiKey(e.target.value)}
                     placeholder="Gemini API Key টাইপ করুন (AIzaSy...)"
-                    className="flex-1 bg-black/70 border border-[#00b4ff]/40 rounded px-4 py-3 text-sm font-mono text-white focus:outline-none focus:border-[#00b4ff] transition-all placeholder:text-white/20"
+                    className="flex-1 bg-black/70 border border-[#3b82f6]/40 rounded px-4 py-3 text-sm font-mono text-white focus:outline-none focus:border-[#3b82f6] transition-all placeholder:text-white/20"
                   />
                   <div className="flex gap-2">
                     <button
                       onClick={handleSaveApiKey}
-                      className="bg-[#00b4ff] text-black font-ui font-bold px-6 py-3 rounded text-sm tracking-widest uppercase hover:bg-sky-400 active:scale-95 transition-all text-center select-none shrink-0"
+                      className="bg-[#3b82f6] text-white font-ui font-bold px-6 py-3 rounded text-sm tracking-widest uppercase hover:bg-blue-600 active:scale-95 transition-all text-center select-none shrink-0"
                     >
                       সেভ করুন
                     </button>
@@ -952,12 +953,12 @@ export default function App() {
 
             {/* Shared Model settings footer */}
             <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-white/5 pt-3">
-              <div className="text-[11px] text-[#a68484] font-ui flex items-center gap-1.5 flex-wrap">
+              <div className="text-[11px] text-[#94a3b8] font-ui flex items-center gap-1.5 flex-wrap">
                 <span>* নির্ধারিত মডেল:</span>
                 <select
                   value={selectedModel}
                   onChange={(e) => setSelectedModel(e.target.value)}
-                  className="bg-black/80 border border-white/10 rounded px-2.5 py-1.5 focus:outline-none text-[#fc0c00] font-mono text-xs cursor-pointer"
+                  className="bg-black/80 border border-white/10 rounded px-2.5 py-1.5 focus:outline-none text-[#e53e3e] font-mono text-xs cursor-pointer"
                 >
                   <option value="gemini-3.5-flash">gemini-3.5-flash (সুপার ফাস্ট)</option>
                   <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview (উন্নত প্রসেসিং)</option>
@@ -967,7 +968,7 @@ export default function App() {
                 href="https://aistudio.google.com/app/apikey" 
                 target="_blank" 
                 rel="noreferrer"
-                className="text-[11px] text-[#fc0c00] hover:underline flex items-center gap-1 font-ui"
+                className="text-[11px] text-[#e53e3e] hover:underline flex items-center gap-1 font-ui"
               >
                 <span>ফ্রি কী তৈরি করুন (Google AI Studio)</span>
                 <ExternalLink className="w-2.5 h-2.5" />
@@ -977,7 +978,7 @@ export default function App() {
         )}
 
         {/* INPUT MODE SWITCHER TABS WITH HIGH-CONTRAST BORDERS */}
-        <div className="flex bg-[#120303]/95 border border-[rgba(252,12,0,0.22)] rounded-xl p-1.5 mb-6 relative z-10 shadow-[0_4px_20px_rgba(0,2,0,0.6)]">
+        <div className="flex bg-[#12131e]/95 border border-[rgba(229,62,62,0.15)] rounded-xl p-1.5 mb-6 relative z-10 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
           <button
             onClick={() => {
               setInputMode('media');
@@ -986,8 +987,8 @@ export default function App() {
             }}
             className={`flex-1 py-3 text-[11px] sm:text-xs font-ui font-bold rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer select-none ${
               inputMode === 'media'
-                ? 'bg-[#fc0c00] text-white shadow-[0_0_12px_rgba(252,12,0,0.25)]'
-                : 'text-[#a68484] hover:text-white hover:bg-white/5'
+                ? 'bg-[#e53e3e] text-white shadow-[0_2px_8px_rgba(229,62,62,0.25)]'
+                : 'text-[#94a3b8] hover:text-white hover:bg-white/5'
             }`}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1005,8 +1006,8 @@ export default function App() {
             }}
             className={`flex-1 py-3 text-[11px] sm:text-xs font-ui font-bold rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer select-none ${
               inputMode === 'text'
-                ? 'bg-[#fc0c00] text-white shadow-[0_0_12px_rgba(252,12,0,0.25)]'
-                : 'text-[#a68484] hover:text-white hover:bg-white/5'
+                ? 'bg-[#e53e3e] text-white shadow-[0_2px_8px_rgba(229,62,62,0.25)]'
+                : 'text-[#94a3b8] hover:text-white hover:bg-white/5'
             }`}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1032,8 +1033,8 @@ export default function App() {
                 onClick={triggerFileInputClick}
                 className={`upload-zone relative border-2 border-dashed rounded-xl p-9 text-center cursor-pointer select-none transition-all duration-300 ${
                   isDragging 
-                    ? 'border-[#fc0c00] bg-[rgba(252,12,0,0.06)]' 
-                    : 'border-[rgba(252,12,0,0.18)] bg-[rgba(252,12,0,0.04)] hover:border-[#fc0c00]'
+                    ? 'border-[#e53e3e] bg-[rgba(229,62,62,0.06)]' 
+                    : 'border-[rgba(229,62,62,0.15)] bg-[rgba(229,62,62,0.02)] hover:border-[#e53e3e]'
                 }`}
               >
                 <input
@@ -1043,26 +1044,26 @@ export default function App() {
                   accept="audio/*,video/*"
                   className="hidden"
                 />
-                <div className="upload-icon w-[52px] h-[52px] border border-[rgba(252,12,0,0.18)] rounded-full mx-auto mb-3.5 flex items-center justify-center transition-all">
+                <div className="upload-icon w-[52px] h-[52px] border border-[rgba(229,62,62,0.15)] rounded-full mx-auto mb-3.5 flex items-center justify-center transition-all">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="#a68484" strokeWidth="1.5"/>
-                    <polyline points="17 8 12 3 7 8" stroke="#a68484" strokeWidth="1.5"/>
-                    <line x1="12" y1="3" x2="12" y2="15" stroke="#a68484" strokeWidth="1.5"/>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="#94a3b8" strokeWidth="1.5"/>
+                    <polyline points="17 8 12 3 7 8" stroke="#94a3b8" strokeWidth="1.5"/>
+                    <line x1="12" y1="3" x2="12" y2="15" stroke="#94a3b8" strokeWidth="1.5"/>
                   </svg>
                 </div>
                 <div className="upload-title font-bangla text-base text-white mb-1.5 font-medium">অডিও বা ভিডিও ফাইল আপলোড করুন</div>
-                <div className="upload-hint text-xs text-[#a68484] font-ui">MP3, MP4, WAV, M4A, OGG সাপোর্টেড • সর্বোচ্চ ১ GB</div>
+                <div className="upload-hint text-xs text-[#94a3b8] font-ui">MP3, MP4, WAV, M4A, OGG সাপোর্টেড • সর্বোচ্চ ১ GB</div>
               </div>
             ) : (
-              <div className="file-info flex bg-[rgba(252,12,0,0.06)] border border-[rgba(252,12,0,0.18)] rounded-lg p-3.5 px-4 mb-4 items-center gap-3 animate-[slideInCard_0.2s_ease_forwards]">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-[#fc0c00]">
-                  <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" stroke="#fc0c00" strokeWidth="1.5"/>
-                  <polyline points="13 2 13 9 20 9" stroke="#fc0c00" strokeWidth="1.5"/>
+              <div className="file-info flex bg-[rgba(229,62,62,0.06)] border border-[rgba(229,62,62,0.15)] rounded-lg p-3.5 px-4 mb-4 items-center gap-3 animate-[slideInCard_0.2s_ease_forwards]">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-[#e53e3e]">
+                  <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" stroke="#e53e3e" strokeWidth="1.5"/>
+                  <polyline points="13 2 13 9 20 9" stroke="#e53e3e" strokeWidth="1.5"/>
                 </svg>
-                <span className="file-name text-xs md:text-sm text-[#fc0c00] flex-1 font-semibold truncate select-text">
+                <span className="file-name text-xs md:text-sm text-[#e53e3e] flex-1 font-semibold truncate select-text">
                   {uploadedFile.name}
                 </span>
-                <span className="file-size text-xs text-[#a68484] mr-3 shrink-0 uppercase select-all font-mono">
+                <span className="file-size text-xs text-[#94a3b8] mr-3 shrink-0 uppercase select-all font-mono">
                   {formatFileSize(uploadedFile.size)}
                 </span>
                 <button
@@ -1075,7 +1076,7 @@ export default function App() {
                     setDuration(0);
                     showToast('ফাইল সরানো হয়েছে');
                   }}
-                  className="text-[#ff3838] hover:text-red-500 font-ui font-semibold hover:underline text-xs outline-none select-none shrink-0 cursor-pointer"
+                  className="text-red-500 hover:text-red-400 font-ui font-semibold hover:underline text-xs outline-none select-none shrink-0 cursor-pointer"
                 >
                   ফাইল পরিবর্তন (Change File)
                 </button>
@@ -1084,19 +1085,19 @@ export default function App() {
 
             {/* AUDIO PLAYER (visual mockup matched with logic) */}
             {uploadedFile && (
-              <div className="audio-wrap flex flex-wrap bg-black/40 border border-[rgba(252,12,0,0.18)] rounded-xl p-3.5 px-4 mb-4 items-center gap-3.5 relative">
+              <div className="audio-wrap flex flex-wrap bg-black/40 border border-[rgba(229,62,62,0.15)] rounded-xl p-3.5 px-4 mb-4 items-center gap-3.5 relative">
                 <button 
                   onClick={togglePlay}
-                  className="play-btn w-10 h-10 rounded-full border border-[#fc0c00] bg-[rgba(252,12,0,0.1)] text-[#fc0c00] cursor-pointer flex items-center justify-center transition-all shrink-0 shadow-[0_0_15px_rgba(252,12,0,0.3)] hover:bg-[rgba(252,12,0,0.2)]"
+                  className="play-btn w-10 h-10 rounded-full border border-[#e53e3e] bg-[rgba(229,62,62,0.1)] text-[#e53e3e] cursor-pointer flex items-center justify-center transition-all shrink-0 shadow-[0_2px_8px_rgba(229,62,62,0.2)] hover:bg-[rgba(229,62,62,0.2)]"
                   title={isPlaying ? "মিউট করুন" : "প্লে করুন"}
                 >
                   {isPlaying ? (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#fc0c00">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#e53e3e">
                       <rect x="6" y="4" width="4" height="16" />
                       <rect x="14" y="4" width="4" height="16" />
                     </svg>
                   ) : (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#fc0c00">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#e53e3e">
                       <polygon points="5 3 19 12 5 21 5 3" />
                     </svg>
                   )}
@@ -1126,7 +1127,7 @@ export default function App() {
                 </div>
 
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="time-display font-logo text-[11px] text-[#a68484]">
+                  <span className="time-display font-logo text-[11px] text-[#94a3b8]">
                     {formatTime(currentTime)} / {formatTime(duration)}
                   </span>
                   <div className="w-20 sm:w-28 flex items-center">
@@ -1136,7 +1137,7 @@ export default function App() {
                       max={duration || 100}
                       value={currentTime}
                       onChange={handleSeek}
-                      className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#fc0c00] focus:outline-none"
+                      className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#e53e3e] focus:outline-none"
                     />
                   </div>
                 </div>
@@ -1144,9 +1145,9 @@ export default function App() {
             )}
           </>
         ) : (
-          <div className="bg-[rgba(5,13,16,0.6)] border border-[rgba(252,12,0,0.18)] rounded-xl p-5 mb-5 relative z-10 animate-[slideInCard_0.2s_ease_forwards] shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
-            <div className="flex items-center gap-3.5 mb-3 text-[#fc0c00]">
-              <div className="p-2 bg-[rgba(252,12,0,0.06)] rounded border border-[rgba(252,12,0,0.12)]">
+          <div className="bg-[rgba(5,13,16,0.6)] border border-[rgba(229,62,62,0.15)] rounded-xl p-5 mb-5 relative z-10 animate-[slideInCard_0.2s_ease_forwards] shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
+            <div className="flex items-center gap-3.5 mb-3 text-[#e53e3e]">
+              <div className="p-2 bg-[rgba(229,62,62,0.06)] rounded border border-[rgba(229,62,62,0.12)]">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                   <polyline points="14 2 14 8 20 8"/>
@@ -1156,7 +1157,7 @@ export default function App() {
               </div>
               <div>
                 <p className="font-ui text-sm font-bold text-white leading-tight">আপনার সংবাদের বিবরণ বা লেখার কপি এখানে পেস্ট করুন</p>
-                <p className="text-[10px] text-[#a68484] mt-0.5 font-ui">সম্পূর্ণ সংবাদ নিবন্ধ বা স্ক্রিপ্ট পেস্ট করুন। AI এটি নিখুঁতভাবে বিশ্লেষণ করে সংবাদ শিরোনাম তৈরি করবে।</p>
+                <p className="text-[10px] text-[#94a3b8] mt-0.5 font-ui">সম্পূর্ণ সংবাদ নিবন্ধ বা স্ক্রিপ্ট পেস্ট করুন। AI এটি নিখুঁতভাবে বিশ্লেষণ করে সংবাদ শিরোনাম তৈরি করবে।</p>
               </div>
             </div>
             
@@ -1165,10 +1166,10 @@ export default function App() {
               onChange={(e) => setInputText(e.target.value)}
               placeholder="এখানে আপনার খবর, স্ক্রিপ্ট বা প্যারাগ্রাফটি পেস্ট করুন..."
               rows={8}
-              className="w-full bg-black/60 border border-[rgba(252,12,0,0.18)] rounded-lg p-4 font-bangla text-sm text-white focus:outline-none focus:border-[#fc0c00] transition-all placeholder:text-white/20 resize-y leading-relaxed font-medium"
+              className="w-full bg-black/60 border border-[rgba(229,62,62,0.15)] rounded-lg p-4 font-bangla text-sm text-white focus:outline-none focus:border-[#e53e3e] transition-all placeholder:text-white/20 resize-y leading-relaxed font-medium"
             />
             {inputText.trim() && (
-              <div className="flex justify-between items-center mt-2.5 px-1 font-logo text-[10px] text-[#6b8c72]">
+              <div className="flex justify-between items-center mt-2.5 px-1 font-logo text-[10px] text-emerald-400">
                 <span>{inputText.trim().length} অক্ষরের টেক্সট ইনপুট দেওয়া হয়েছে</span>
                 <button
                   onClick={() => {
@@ -1188,11 +1189,11 @@ export default function App() {
 
         {/* SECTION 5.3: SELECTOR MODE ENGINE */}
         {((inputMode === 'media' && uploadedFile) || (inputMode === 'text' && inputText.trim().length > 0)) && (
-          <div className="bg-[rgba(5,13,16,0.6)] border border-[rgba(252,12,0,0.18)] rounded-xl p-5 mb-6 relative z-10 animate-[slideInCard_0.2s_ease_forwards]">
+          <div className="bg-[rgba(5,13,16,0.6)] border border-[rgba(229,62,62,0.15)] rounded-xl p-5 mb-6 relative z-10 animate-[slideInCard_0.2s_ease_forwards]">
             
             {/* Optional Speaker Name Input Field */}
             <div className="mb-5 border-b border-white/5 pb-5">
-              <label className="block text-xs font-semibold text-[#fc0c00] uppercase tracking-wider mb-2 font-ui">
+              <label className="block text-xs font-semibold text-[#e53e3e] uppercase tracking-wider mb-2 font-ui">
                 বক্তার নাম, পদবি বা প্রধান ব্যক্তি (ঐচ্ছিক) / Speaker/Author Name (Optional)
               </label>
               <div className="relative">
@@ -1201,7 +1202,7 @@ export default function App() {
                   value={speakerName}
                   onChange={(e) => setSpeakerName(e.target.value)}
                   placeholder="যেমন: খন্দকার মুক্তাদির, পরিকল্পনামন্ত্রী, ওবায়দুল কাদের ইত্যাদি..."
-                  className="w-full bg-black/60 border border-[rgba(252,12,0,0.18)] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#fc0c00] transition-all placeholder:text-white/20 leading-relaxed font-bangla font-medium"
+                  className="w-full bg-black/60 border border-[rgba(229,62,62,0.15)] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#e53e3e] transition-all placeholder:text-white/20 leading-relaxed font-bangla font-medium"
                 />
                 {speakerName && (
                   <button
@@ -1212,12 +1213,12 @@ export default function App() {
                   </button>
                 )}
               </div>
-              <p className="text-[10px] text-[#6b8c72] mt-1.5 font-ui">
+              <p className="text-[10px] text-[#94a3b8] mt-1.5 font-ui">
                 * এখানে নাম বা পদবি দিলে এআই (AI) বক্তব্যের উৎস মেলাবে এবং শিরোনামে চমৎকার আশ্বস্তকরণ বিশেষণ (যেমন: 'মন্ত্রীর আশ্বাস' অথবা 'খন্দকার মুক্তাদিরের আশ্বস্তকরণ') তৈরি করবে।
               </p>
             </div>
 
-            <h4 className="font-ui text-xs font-semibold text-[#fc0c00] uppercase tracking-wider mb-4 text-center select-none">
+            <h4 className="font-ui text-xs font-semibold text-[#e53e3e] uppercase tracking-wider mb-4 text-center select-none">
               {inputMode === 'media' ? "এআই অ্যানালিটিক্স ভিডিও মোড সিলেক্ট করুন" : "এআই অ্যানালিটিক্স টেক্সট মোড সিলেক্ট করুন"}
             </h4>
             
@@ -1225,8 +1226,8 @@ export default function App() {
               <label 
                 className={`flex items-center gap-3.5 p-4 rounded-xl border cursor-pointer transition-all select-none ${
                   videoType === 'news' 
-                    ? 'border-[#fc0c00] bg-[rgba(252,12,0,0.06)] shadow-[0_0_15px_rgba(252,12,0,0.1)]' 
-                    : 'border-[rgba(252,12,0,0.1)] bg-black/30 hover:border-[rgba(252,12,0,0.18)]'
+                    ? 'border-[#e53e3e] bg-[rgba(229,62,62,0.06)] shadow-[0_2px_10px_rgba(229,62,62,0.1)]' 
+                    : 'border-[rgba(229,62,62,0.1)] bg-black/30 hover:border-[rgba(229,62,62,0.15)]'
                 }`}
               >
                 <input
@@ -1236,14 +1237,14 @@ export default function App() {
                   onChange={() => setVideoType('news')}
                   className="hidden"
                 />
-                <div className={`p-2 rounded shrink-0 ${videoType === 'news' ? 'bg-[#fc0c00] text-white' : 'bg-white/5 text-[#a68484]'}`}>
+                <div className={`p-2 rounded shrink-0 ${videoType === 'news' ? 'bg-[#e53e3e] text-white' : 'bg-white/5 text-[#94a3b8]'}`}>
                   <Radio className="w-4 h-4" />
                 </div>
                 <div>
                   <p className="font-ui text-sm font-bold text-white leading-tight">
                     {inputMode === 'media' ? "নিউজ ভিডিও / রাজনৈতিক বক্তব্য" : "সংবাদ ও রাজনৈতিক টেক্সট / আর্টিকেল"}
                   </p>
-                  <p className="text-[10px] text-[#a68484] mt-0.5 font-ui">
+                  <p className="text-[10px] text-[#94a3b8] mt-0.5 font-ui">
                     {inputMode === 'media' ? "৫টি ক্যাটাগরিতে ৩০টির বেশি পেশাদার সংবাদ শিরোনাম দেবে" : "৫টি ক্যাটাগরিতে ৩০টির বেশি পেশাদার সংবাদ শিরোনাম বিশ্লেষণ করে দেবে"}
                   </p>
                 </div>
@@ -1252,8 +1253,8 @@ export default function App() {
               <label 
                 className={`flex items-center gap-3.5 p-4 rounded-xl border cursor-pointer transition-all select-none ${
                   videoType === 'general' 
-                    ? 'border-[#fc0c00] bg-[rgba(252,12,0,0.06)] shadow-[0_0_15px_rgba(252,12,0,0.1)]' 
-                    : 'border-[rgba(252,12,0,0.1)] bg-black/30 hover:border-[rgba(252,12,0,0.18)]'
+                    ? 'border-[#e53e3e] bg-[rgba(229,62,62,0.06)] shadow-[0_2px_10px_rgba(229,62,62,0.1)]' 
+                    : 'border-[rgba(229,62,62,0.1)] bg-black/30 hover:border-[rgba(229,62,62,0.15)]'
                 }`}
               >
                 <input
@@ -1263,14 +1264,14 @@ export default function App() {
                   onChange={() => setVideoType('general')}
                   className="hidden"
                 />
-                <div className={`p-2 rounded shrink-0 ${videoType === 'general' ? 'bg-[#fc0c00] text-white' : 'bg-white/5 text-[#a68484]'}`}>
+                <div className={`p-2 rounded shrink-0 ${videoType === 'general' ? 'bg-[#e53e3e] text-white' : 'bg-white/5 text-[#94a3b8]'}`}>
                   <Activity className="w-4 h-4" />
                 </div>
                 <div>
                   <p className="font-ui text-sm font-bold text-white leading-tight">
                     {inputMode === 'media' ? "সাধারণ ভিডিও / অন্যান্য কন্টেন্ট" : "সাধারণ লেখা / অন্যান্য প্রবন্ধ নিবন্ধ"}
                   </p>
-                  <p className="text-[10px] text-[#a68484] mt-0.5 font-ui">
+                  <p className="text-[10px] text-[#94a3b8] mt-0.5 font-ui">
                     {inputMode === 'media' ? "সোশ্যাল মিডিয়া ক্যাপশন ও ১০-১৫টি মৌলিক বাংলা শিরোনাম দেবে" : "সোশ্যাল মিডিয়া ক্যাপশন ও ১০-১৫টি মৌলিক বাংলা শিরোনাম বিশ্লেষণ করে দেবে"}
                   </p>
                 </div>
@@ -1285,7 +1286,7 @@ export default function App() {
             <button
               onClick={() => generateHeadlines(false)}
               disabled={isAnalyzing}
-              className="inline-flex items-center gap-2 px-5 py-3 rounded bg-[#fc0c00] text-white font-semibold font-ui text-xs tracking-wider transition-all shadow-[0_0_20px_rgba(252,12,0,0.3)] hover:shadow-[0_0_30px_rgba(252,12,0,0.6)] cursor-pointer disabled:opacity-40 disabled:pointer-events-none select-none uppercase active:scale-98 font-bold"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded bg-[#e53e3e] text-white font-semibold font-ui text-xs tracking-wider transition-all shadow-[0_2px_12px_rgba(229,62,62,0.2)] hover:shadow-[0_4px_16px_rgba(229,62,62,0.35)] cursor-pointer disabled:opacity-40 disabled:pointer-events-none select-none uppercase active:scale-98 font-bold"
             >
               <Sparkles className="w-3.5 h-3.5 text-white" />
               <span>শিরোনাম তৈরি করুন</span>
@@ -1295,7 +1296,7 @@ export default function App() {
               <button
                 onClick={() => generateHeadlines(true)}
                 disabled={isAnalyzing}
-                className="inline-flex items-center gap-2 px-5 py-3 rounded bg-transparent text-[#fc0c00] border border-[rgba(252,12,0,0.18)] font-semibold font-ui text-xs tracking-wider transition-all hover:border-[#fc0c00] hover:bg-[rgba(252,12,0,0.07)] cursor-pointer disabled:opacity-40 disabled:pointer-events-none select-none uppercase active:scale-98"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded bg-transparent text-[#e53e3e] border border-[rgba(229,62,62,0.15)] font-semibold font-ui text-xs tracking-wider transition-all hover:border-[#e53e3e] hover:bg-[rgba(229,62,62,0.07)] cursor-pointer disabled:opacity-40 disabled:pointer-events-none select-none uppercase active:scale-98"
               >
                 <RotateCcw className={`w-3.5 h-3.5 ${isAnalyzing ? 'animate-spin' : ''}`} />
                 <span>রিজেনারেট (Regenerate)</span>
@@ -1304,7 +1305,7 @@ export default function App() {
 
             <button
               onClick={handleRefreshApp}
-              className="inline-flex items-center gap-2 px-4 py-3 rounded bg-transparent text-[#a68484] border border-white/5 hover:border-[rgba(252,12,0,0.18)] hover:text-white font-semibold font-ui text-xs tracking-wider transition-all cursor-pointer select-none uppercase active:scale-98"
+              className="inline-flex items-center gap-2 px-4 py-3 rounded bg-transparent text-[#94a3b8] border border-white/5 hover:border-[rgba(229,62,62,0.15)] hover:text-white font-semibold font-ui text-xs tracking-wider transition-all cursor-pointer select-none uppercase active:scale-98"
               title="রিফ্রেশ করুন"
             >
               <RefreshCw className="w-3.5 h-3.5" />
@@ -1317,24 +1318,24 @@ export default function App() {
         {isAnalyzing && (
           <div className="mt-6 relative z-10">
             {/* Status Bar */}
-            <div className="flex bg-[rgba(5,13,16,0.8)] border border-[rgba(252,12,0,0.18)] rounded-lg p-3 px-4 mb-2.5 items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-[#fc0c00] animate-pulse"></div>
-              <span className="font-bangla text-xs sm:text-sm text-[#fc0c00] flex-1">
+            <div className="flex bg-[rgba(5,13,16,0.8)] border border-[rgba(229,62,62,0.15)] rounded-lg p-3 px-4 mb-2.5 items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-[#e53e3e] animate-pulse"></div>
+              <span className="font-bangla text-xs sm:text-sm text-[#e53e3e] flex-1">
                 {statusMessage}
               </span>
-              <span className="font-logo text-xs text-[#a68484] shrink-0 font-bold uppercase">
+              <span className="font-logo text-xs text-[#94a3b8] shrink-0 font-bold uppercase">
                 {accumulatedHeadlines.length} শিরোনাম তৈরি হয়েছে
               </span>
             </div>
 
             {/* Stream Progress Fill */}
-            <div className="h-1 bg-[rgba(252,12,0,0.1)] rounded overflow-hidden shadow-[0_0_8px_rgba(252,12,0,0.3)]">
+            <div className="h-1 bg-[rgba(229,62,62,0.1)] rounded overflow-hidden shadow-[0_2px_8px_rgba(229,62,62,0.15)]">
               <div 
-                className="bg-[#fc0c00] h-full transition-all duration-300 shadow-[0_0_8px_rgba(252,12,0,0.8)]"
+                className="bg-[#e53e3e] h-full transition-all duration-300 shadow-[0_0_8px_rgba(229,62,62,0.5)]"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <div className="flex justify-end mt-1 font-logo text-[10px] text-[#a68484] uppercase font-semibold">
+            <div className="flex justify-end mt-1 font-logo text-[10px] text-[#94a3b8] uppercase font-semibold">
               {progress}% PROCESSED
             </div>
           </div>
@@ -1342,11 +1343,11 @@ export default function App() {
 
         {/* RESULTS WRAPPER INTERFACE (Section 6) */}
         {displayedHeadlines.length > 0 && (
-          <div className="mt-8 mb-4 border-b border-[rgba(252,12,0,0.08)] pb-3 flex items-center justify-between gap-4 select-none relative z-10 w-full">
+          <div className="mt-8 mb-4 border-b border-[rgba(229,62,62,0.08)] pb-3 flex items-center justify-between gap-4 select-none relative z-10 w-full">
             <h3 className="font-bangla text-base sm:text-lg font-bold text-white tracking-wide">
               তৈরি হওয়া শিরোনামসমূহ
             </h3>
-            <span className="font-logo text-xs bg-[rgba(252,12,0,0.12)] border border-[rgba(252,12,0,0.12)] px-3 py-1 rounded-full text-[#fc0c00] font-black uppercase shadow-[0_0_15px_rgba(252,12,0,0.1)]">
+            <span className="font-logo text-xs bg-[rgba(229,62,62,0.08)] border border-[rgba(229,62,62,0.15)] px-3 py-1 rounded-full text-[#e53e3e] font-black uppercase shadow-[0_2px_8px_rgba(229,62,62,0.1)]">
               {displayedHeadlines.length}টি শিরোনাম
             </span>
           </div>
@@ -1370,14 +1371,14 @@ export default function App() {
                     <div className="cat-header flex items-center gap-2 px-1 mb-2.5">
                       <div className="cat-dot w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: config.color }}></div>
                       <div className="cat-label text-[13px] font-semibold" style={{ color: config.color }}>{config.label}</div>
-                      <div className="cat-count ml-auto font-logo text-[9px] bg-white/5 border border-white/5 rounded px-2 py-0.5 text-[#6b8c72] font-semibold select-none">
+                      <div className="cat-count ml-auto font-logo text-[9px] bg-white/5 border border-white/5 rounded px-2 py-0.5 text-[#94a3b8] font-semibold select-none">
                         {list.length}
                       </div>
                     </div>
 
                     {/* Cards Container */}
                     <div className="space-y-2">
-                      {list.map((headline, idx) => {
+                       {list.map((headline, idx) => {
                         const uniqueId = `${catKey}-${idx}`;
                         return (
                           <div
@@ -1403,7 +1404,7 @@ export default function App() {
                               {headline.ts && (
                                 <button
                                   onClick={() => seekToTime(headline.ts as string)}
-                                  className="timestamp-badge inline-flex items-center gap-1 bg-white/5 border border-white/10 rounded px-2 py-0.5 font-logo text-[9px] text-[#a68484] hover:border-[#fc0c00] hover:text-white transition-all cursor-pointer outline-none font-bold"
+                                  className="timestamp-badge inline-flex items-center gap-1 bg-white/5 border border-white/10 rounded px-2 py-0.5 font-logo text-[9px] text-[#94a3b8] hover:border-[#e53e3e] hover:text-white transition-all cursor-pointer outline-none font-bold"
                                   title={`${headline.ts} তে যান`}
                                 >
                                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><polyline points="12 6 12 12 16 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
@@ -1413,7 +1414,7 @@ export default function App() {
 
                               <button
                                 onClick={() => handleCopy(headline.text, uniqueId)}
-                                className={`copy-btn ml-auto inline-flex items-center gap-1.5 text-xs text-[#a68484] hover:text-[#fc0c00] cursor-pointer outline-none transition-colors font-ui`}
+                                className={`copy-btn ml-auto inline-flex items-center gap-1.5 text-xs text-[#94a3b8] hover:text-[#e53e3e] cursor-pointer outline-none transition-colors font-ui`}
                               >
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" strokeWidth="2"/></svg>
                                 <span>{copiedId === uniqueId ? 'কপি হয়েছে ✓' : 'কপি'}</span>
@@ -1432,7 +1433,7 @@ export default function App() {
                 <div className="cat-header flex items-center gap-2 px-1 mb-2.5">
                   <div className="cat-dot w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: CATEGORIES.general.color }}></div>
                   <div className="cat-label text-[13px] font-semibold" style={{ color: CATEGORIES.general.color }}>{CATEGORIES.general.label}</div>
-                  <div className="cat-count ml-auto font-logo text-[9px] bg-white/5 border border-white/5 rounded px-2 py-0.5 text-[#6b8c72] font-semibold select-none">
+                  <div className="cat-count ml-auto font-logo text-[9px] bg-white/5 border border-white/5 rounded px-2 py-0.5 text-[#94a3b8] font-semibold select-none">
                     {displayedHeadlines.length}
                   </div>
                 </div>
@@ -1463,7 +1464,7 @@ export default function App() {
 
                           <button
                             onClick={() => handleCopy(headline.text, uniqueId)}
-                            className={`copy-btn ml-auto inline-flex items-center gap-1.5 text-xs text-[#a68484] hover:text-[#fc0c00] cursor-pointer outline-none transition-colors font-ui`}
+                            className={`copy-btn ml-auto inline-flex items-center gap-1.5 text-xs text-[#94a3b8] hover:text-[#e53e3e] cursor-pointer outline-none transition-colors font-ui`}
                           >
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" strokeWidth="2"/></svg>
                             <span>{copiedId === uniqueId ? 'কপি হয়েছে ✓' : 'কপি'}</span>
@@ -1480,9 +1481,9 @@ export default function App() {
       </main>
 
       {/* FOOTER SIGNATURE (From Mockup UI) */}
-      <footer className="mt-14 pt-6 pb-8 border-t border-[rgba(252,12,0,0.08)] flex flex-col sm:flex-row items-center justify-between gap-4 text-[#a68484] text-xs max-w-[860px] mx-auto w-full px-4 z-20 relative font-ui select-none">
+      <footer className="mt-14 pt-6 pb-8 border-t border-[rgba(229,62,62,0.08)] flex flex-col sm:flex-row items-center justify-between gap-4 text-[#94a3b8] text-xs max-w-[860px] mx-auto w-full px-4 z-20 relative font-ui select-none">
         <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full shadow-[0_0_8px_rgba(252,12,0,0.6)] ${isAnalyzing ? 'bg-amber-500 animate-pulse' : 'bg-[#fc0c00]'}`}></div>
+          <div className={`w-2 h-2 rounded-full shadow-[0_2px_8px_rgba(229,62,62,0.3)] ${isAnalyzing ? 'bg-amber-500 animate-pulse' : 'bg-[#e53e3e]'}`}></div>
           <span>
             {isAnalyzing ? "Analyzing speech file or audio stream..." : "System Online • All AI models optimal"}
           </span>
@@ -1494,16 +1495,16 @@ export default function App() {
             href="https://www.facebook.com/saeedalmahdi24" 
             target="_blank" 
             rel="noreferrer" 
-            className="text-[#fc0c00] hover:opacity-80 transition-all font-semibold flex items-center gap-1 select-text"
+            className="text-[#e53e3e] hover:opacity-80 transition-all font-semibold flex items-center gap-1 select-text"
           >
-            <svg className="fb-icon" width="15" height="15" viewBox="0 0 24 24" fill="#fc0c00">
+            <svg className="fb-icon" width="15" height="15" viewBox="0 0 24 24" fill="#e53e3e">
               <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
             </svg>
             Saeed Al Mahdi
           </a>
         </div>
 
-        <div className="flex gap-4 text-[#6b8c72]">
+        <div className="flex gap-4 text-[#94a3b8]">
           <span className="hover:text-white cursor-pointer transition-colors">Support</span>
           <span className="hover:text-white cursor-pointer transition-colors">Privacy</span>
           <span className="hover:text-white cursor-pointer transition-colors">Documentation</span>

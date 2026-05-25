@@ -1,19 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --neon: #fc0c00;
-  --neon-dim: rgba(252,12,0,0.15);
-  --neon-glow: 0 0 20px rgba(252,12,0,0.6), 0 0 60px rgba(252,12,0,0.2);
-  --bg: #090101;
-  --bg2: #120303;
-  --surface: rgba(252,12,0,0.04);
-  --border: rgba(252,12,0,0.22);
-  --text: #fcebeb;
-  --muted: #a68484;
-  --red: #ff3838;
-  --amber: #ffb800;
-  --blue: #00b4ff;
-  --purple: #b44dff;
+  --neon: #e53e3e;
+  --neon-dim: rgba(229, 62, 62, 0.08);
+  --neon-glow: 0 2px 10px rgba(229, 62, 62, 0.15);
+  --bg: #090a10;
+  --bg2: #12131e;
+  --surface: rgba(229, 62, 62, 0.02);
+  --border: rgba(229, 62, 62, 0.15);
+  --text: #f1f5f9;
+  --muted: #94a3b8;
+  --red: #ef4444;
+  --amber: #f59e0b;
+  --blue: #3b82f6;
+  --purple: #a855f7;
   --white: #ffffff;
 }
 
@@ -40,30 +40,20 @@ body::before {
   inset: 0;
   z-index: 0;
   background:
-    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(252,12,0,0.07) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 40% at 90% 90%, rgba(0,180,255,0.04) 0%, transparent 50%),
-    repeating-linear-gradient(0deg, transparent, transparent 59px, rgba(252,12,0,0.02) 60px),
-    repeating-linear-gradient(90deg, transparent, transparent 59px, rgba(252,12,0,0.01) 60px);
-  pointer-events: none;
-}
-
-/* TV Scan lines effect */
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  background: repeating-linear-gradient(0deg, transparent 0px, transparent 2px, rgba(0,0,0,0.12) 2px, rgba(0,0,0,0.12) 4px);
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(229,62,62,0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 90% 90%, rgba(59,130,246,0.01) 0%, transparent 50%),
+    repeating-linear-gradient(0deg, transparent, transparent 79px, rgba(229,62,62,0.01) 80px),
+    repeating-linear-gradient(90deg, transparent, transparent 79px, rgba(229,62,62,0.005) 80px);
   pointer-events: none;
 }
 
 /* Icon Pulse animation */
 @keyframes iconPulse {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(252,12,0,0.6), 0 0 60px rgba(252,12,0,0.2);
+    box-shadow: 0 0 12px rgba(229,62,62,0.3);
   }
   50% {
-    box-shadow: 0 0 30px rgba(252,12,0,0.9), 0 0 80px rgba(252,12,0,0.3);
+    box-shadow: 0 0 18px rgba(229,62,62,0.45);
   }
 }
 
@@ -131,9 +121,9 @@ body::after {
   background: var(--bg);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(252, 12, 0, 0.2);
+  background: rgba(229, 62, 62, 0.2);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(252, 12, 0, 0.5);
+  background: rgba(229, 62, 62, 0.5);
 }
