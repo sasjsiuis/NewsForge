@@ -1,15 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --neon: #00ff3c;
-  --neon-dim: rgba(0,255,60,0.15);
-  --neon-glow: 0 0 20px rgba(0,255,60,0.6), 0 0 60px rgba(0,255,60,0.2);
-  --bg: #020609;
-  --bg2: #050d10;
-  --surface: rgba(0,255,60,0.04);
-  --border: rgba(0,255,60,0.18);
-  --text: #e8f5e9;
-  --muted: #6b8c72;
+  --neon: #fc0c00;
+  --neon-dim: rgba(252,12,0,0.15);
+  --neon-glow: 0 0 20px rgba(252,12,0,0.6), 0 0 60px rgba(252,12,0,0.2);
+  --bg: #090101;
+  --bg2: #120303;
+  --surface: rgba(252,12,0,0.04);
+  --border: rgba(252,12,0,0.22);
+  --text: #fcebeb;
+  --muted: #a68484;
   --red: #ff3838;
   --amber: #ffb800;
   --blue: #00b4ff;
@@ -40,10 +40,10 @@ body::before {
   inset: 0;
   z-index: 0;
   background:
-    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(0,255,60,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(252,12,0,0.07) 0%, transparent 60%),
     radial-gradient(ellipse 40% 40% at 90% 90%, rgba(0,180,255,0.04) 0%, transparent 50%),
-    repeating-linear-gradient(0deg, transparent, transparent 59px, rgba(0,255,60,0.03) 60px),
-    repeating-linear-gradient(90deg, transparent, transparent 59px, rgba(0,255,60,0.02) 60px);
+    repeating-linear-gradient(0deg, transparent, transparent 59px, rgba(252,12,0,0.02) 60px),
+    repeating-linear-gradient(90deg, transparent, transparent 59px, rgba(252,12,0,0.01) 60px);
   pointer-events: none;
 }
 
@@ -53,17 +53,17 @@ body::after {
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: repeating-linear-gradient(0deg, transparent 0px, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+  background: repeating-linear-gradient(0deg, transparent 0px, transparent 2px, rgba(0,0,0,0.12) 2px, rgba(0,0,0,0.12) 4px);
   pointer-events: none;
 }
 
 /* Icon Pulse animation */
 @keyframes iconPulse {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(0,255,60,0.6), 0 0 60px rgba(0,255,60,0.2);
+    box-shadow: 0 0 20px rgba(252,12,0,0.6), 0 0 60px rgba(252,12,0,0.2);
   }
   50% {
-    box-shadow: 0 0 30px rgba(0,255,60,0.9), 0 0 80px rgba(0,255,60,0.3);
+    box-shadow: 0 0 30px rgba(252,12,0,0.9), 0 0 80px rgba(252,12,0,0.3);
   }
 }
 
@@ -131,9 +131,9 @@ body::after {
   background: var(--bg);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 255, 60, 0.2);
+  background: rgba(252, 12, 0, 0.2);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 255, 60, 0.5);
+  background: rgba(252, 12, 0, 0.5);
 }
