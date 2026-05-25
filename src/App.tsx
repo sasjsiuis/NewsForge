@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { SYSTEM_API_KEYS, getSavedRotatorIndex, saveRotatorIndex } from './apiKeys';
 import { 
   Key, 
   Upload, 
@@ -174,9 +175,11 @@ const TEXT_GENERAL_MODE_PROMPT = `এই খবর বা টেক্সটট�
 
 export default function App() {
   // Key state
+  const [keySource, setKeySource] = useState<'rotator' | 'custom'>('rotator');
+  const [currentRotatorIndex, setCurrentRotatorIndex] = useState<number>(0);
   const [apiKey, setApiKey] = useState<string>('');
   const [tempApiKey, setTempApiKey] = useState<string>('');
-  const [showKeyInput, setShowKeyInput] = useState<boolean>(true);
+  const [showKeyInput, setShowKeyInput] = useState<boolean>(false);
 
   // File loading state
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -211,10 +214,23 @@ export default function App() {
 
   // Load API Key on mount
   useEffect(() => {
+    const savedSource = localStorage.getItem('gemini_key_source') || 'rotator';
+    setKeySource(savedSource as 'rotator' | 'custom');
+
     const savedKey = localStorage.getItem('gemini_api_key');
     if (savedKey) {
       setApiKey(savedKey);
       setTempApiKey(savedKey);
+    }
+
+    const savedIdx = getSavedRotatorIndex();
+    setCurrentRotatorIndex(savedIdx);
+
+    // If source is custom and there's no custom key, prompt the user. 
+    // Otherwise keep it collapsed since rotator is active out-of-the-box.
+    if (savedSource === 'custom' && !savedKey) {
+      setShowKeyInput(true);
+    } else {
       setShowKeyInput(false);
     }
   }, []);
@@ -395,8 +411,8 @@ export default function App() {
 
   // API Headline Generator
   const generateHeadlines = async (isRegenerating: boolean = false) => {
-    if (!apiKey) {
-      showToast('Gemini API Key দিন');
+    if (keySource === 'custom' && !apiKey) {
+      showToast('আপনার নিজস্ব Gemini API Key দিন');
       setShowKeyInput(true);
       return;
     }
@@ -472,44 +488,117 @@ export default function App() {
 
       setProgress(70);
       setStatusMessage(inputMode === 'media' 
-        ? 'এআই ইঞ্জিনে অডিও পাঠানো হচ্ছে (কিছুসময় লাগতে পারে)...' 
-        : 'এআই ইঞ্জিনে খবরটি পাঠিয়ে শিরোনাম বাছা হচ্ছে...');
+        ? 'এআই ড্রাইভার প্রস্তুত করা হচ্ছে...' 
+        : 'এআই ড্রাইভার প্রস্তুত করা হচ্ছে...');
 
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
+      let response: Response | null = null;
+      let usedKey = '';
+      let rotatorIndexToUse = currentRotatorIndex;
+      let attempts = 0;
+      const MAX_ROTATOR_ATTEMPTS = 15; 
+      let success = false;
+      let resJson: any = null;
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: contents,
-          generationConfig: {
-            temperature: 0.8,
-            maxOutputTokens: 8192,
-            responseMimeType: "application/json"
+      while (!success && attempts < (keySource === 'rotator' ? MAX_ROTATOR_ATTEMPTS : 1)) {
+        try {
+          if (keySource === 'rotator') {
+            usedKey = SYSTEM_API_KEYS[rotatorIndexToUse];
+            setStatusMessage(inputMode === 'media' 
+              ? `এআই ইঞ্জিনে অডিও পাঠানো হচ্ছে [কী #${rotatorIndexToUse + 1}/${SYSTEM_API_KEYS.length}] ...` 
+              : `এআই ইঞ্জিনে খবর পাঠানো হচ্ছে [কী #${rotatorIndexToUse + 1}/${SYSTEM_API_KEYS.length}] ...`);
+          } else {
+            usedKey = apiKey;
+            setStatusMessage(inputMode === 'media' 
+              ? 'এআই ইঞ্জিনে অডিও পাঠানো হচ্ছে (আপনার নিজস্ব কী)...' 
+              : 'এআই ইঞ্জিনে খবর পাঠানো হচ্ছে (আপনার নিজস্ব কী)...');
           }
-        })
-      });
 
-      setProgress(85);
-      setStatusMessage('এআই রেসপন্স পার্স করা হচ্ছে...');
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${usedKey}`;
 
-      if (!response.ok) {
-        const errorVal = response.status;
-        if (errorVal === 400) {
-          showToast('ফাইল ফরম্যাট বা ইনপুট ডেটা সাপোর্টেড নয়');
-        } else if (errorVal === 429) {
-          showToast('API রেট লিমিট, কিছুক্ষণ পর চেষ্টা করুন');
-        } else {
-          showToast('নেটওয়ার্ক ত্রুটি, ইন্টারনেট সংযোগ পরীক্ষা করুন');
+          response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contents: contents,
+              generationConfig: {
+                temperature: 0.8,
+                maxOutputTokens: 8192,
+                responseMimeType: "application/json"
+              }
+            })
+          });
+
+          if (response.ok) {
+            resJson = await response.json();
+            success = true;
+            break;
+          }
+
+          const errorVal = response.status;
+          console.warn(`API Key index ${rotatorIndexToUse} returned status ${errorVal}`);
+
+          if (keySource === 'rotator') {
+            attempts++;
+            const nextIdx = (rotatorIndexToUse + 1) % SYSTEM_API_KEYS.length;
+            rotatorIndexToUse = nextIdx;
+            setCurrentRotatorIndex(nextIdx);
+            saveRotatorIndex(nextIdx);
+
+            if (errorVal === 429) {
+              showToast(`কী #${rotatorIndexToUse} রেট লিমিট হয়েছে! কী পরিবর্তন করা হচ্ছে...`);
+            } else if (errorVal === 403 || errorVal === 400) {
+              showToast(`কী #${rotatorIndexToUse} ব্যস্ত বা লিমিট ছুয়েছে! কী পরিবর্তন করা হচ্ছে...`);
+            } else {
+              showToast(`এপিআই সার্ভার ত্রুটি (${errorVal})! পরবর্তী কী চেষ্টা করা হচ্ছে...`);
+            }
+            // Add a short delay to prevent thrashing
+            await new Promise(resolve => setTimeout(resolve, 800));
+          } else {
+            // Own custom key returned error
+            if (errorVal === 400) {
+              showToast('ফাইল ফরম্যাট বা ইনপুট ডেটা সাপোর্টেড নয়');
+            } else if (errorVal === 429) {
+              showToast('আপনার API রেট লিমিট অতিক্রম করেছে, একটু পর চেষ্টা করুন');
+            } else if (errorVal === 403) {
+              showToast('আপনার API Key-টি অবৈধ বা কোটা শেষ হয়ে গেছে');
+            } else {
+              showToast(`ভুল রেসপন্স (${errorVal}), অনুগ্রহ করে আপনার কী চেক করুন`);
+            }
+            setIsAnalyzing(false);
+            setProgress(0);
+            return;
+          }
+
+        } catch (fetchErr) {
+          console.error("Fetch API error:", fetchErr);
+          if (keySource === 'rotator') {
+            attempts++;
+            const nextIdx = (rotatorIndexToUse + 1) % SYSTEM_API_KEYS.length;
+            rotatorIndexToUse = nextIdx;
+            setCurrentRotatorIndex(nextIdx);
+            saveRotatorIndex(nextIdx);
+            showToast(`নেটওয়ার্ক ত্রুটি! পরবর্তী কী চেষ্টা করা হচ্ছে...`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } else {
+            showToast('নেটওয়ার্ক সংযোগ ব্যর্থ হয়েছে, দয়া করে ইন্টারনেট কানেকশন চেক করুন');
+            setIsAnalyzing(false);
+            setProgress(0);
+            return;
+          }
         }
+      }
+
+      if (!success) {
+        showToast('দুঃখিত, কোনো সচল API কী পাওয়া যায়নি। অনুগ্রহ করে পরে আবার চেষ্টা করুন অথবা নিজস্ব কী দিন');
         setIsAnalyzing(false);
         setProgress(0);
         return;
       }
 
-      const resJson = await response.json();
+      setProgress(85);
+      setStatusMessage('এআই রেসপন্স পার্স করা হচ্ছে...');
       setProgress(95);
       setStatusMessage('শিরোনাম তালিকা ম্যাপ করা হচ্ছে...');
 
@@ -695,26 +784,30 @@ export default function App() {
       <main className="max-w-[860px] mx-auto px-4 sm:px-6 py-4 pb-24 z-10 relative w-full">
         {/* Sleek top API management pill */}
         <div className="flex justify-end mb-4">
-          {!showKeyInput && apiKey ? (
-            <div className="inline-flex items-center gap-2.5 bg-[rgba(0,255,60,0.06)] border border-[rgba(0,255,60,0.18)] py-1 px-3.5 rounded-full shadow-md text-xs">
-              <span className="w-2 h-2 rounded-full bg-[#00ff3c] animate-pulse"></span>
-              <span className="text-[#6b8c72] font-ui font-semibold uppercase tracking-wider text-[11px]">API Key সংরক্ষিত</span>
-              <button
-                onClick={handleClearApiKey}
-                className="text-[#ff3838] font-ui font-bold hover:underline select-none outline-none cursor-pointer"
-              >
-                মুছে ফেলুন
-              </button>
-            </div>
-          ) : (
+          <div className="inline-flex items-center gap-2 bg-[rgba(0,255,60,0.06)] border border-[rgba(0,255,60,0.18)] py-1 px-3.5 rounded-full shadow-md text-[11px]">
+            {keySource === 'rotator' ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-[#00ff3c] animate-pulse"></span>
+                <span className="text-[#00ff3c]/90 font-ui font-bold uppercase tracking-wider">সিস্টেম কী রোটেটর সক্রিয় (৮১টি সচল কী)</span>
+              </>
+            ) : apiKey ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-[#00b4ff] animate-pulse"></span>
+                <span className="text-[#00b4ff] font-ui font-bold uppercase tracking-wider">আমার নিজস্ব API Key সংরক্ষিত</span>
+              </>
+            ) : (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-ping"></span>
+                <span className="text-red-400 font-ui font-bold uppercase tracking-wider">নিজস্ব কী দেওয়া নেই ⚠</span>
+              </>
+            )}
             <button
-              onClick={() => setShowKeyInput(true)}
-              className="inline-flex items-center gap-1.5 bg-[rgba(0,255,60,0.1)] border border-[rgba(0,255,60,0.25)] hover:bg-[rgba(0,255,60,0.18)] text-[#00ff3c] text-xs font-ui font-bold px-3 py-1.5 rounded-full transition-all outline-none cursor-pointer shadow-[0_0_12px_rgba(0,255,60,0.2)]"
+              onClick={() => setShowKeyInput(!showKeyInput)}
+              className="text-[#6b8c72] hover:text-[#00ff3c] font-ui font-bold hover:underline select-none outline-none cursor-pointer ml-1.5 border-l border-white/10 pl-2 transition-all"
             >
-              <Key className="w-3 h-3" />
-              <span>Gemini API Key সেট করুন</span>
+              {showKeyInput ? 'লুকান' : 'পছন্দ করুন'}
             </button>
-          )}
+          </div>
         </div>
 
         {/* LOGO AREA STATEMENT (From Mockup UI) */}
@@ -749,46 +842,121 @@ export default function App() {
 
         {/* SECTION 7: API KEY MANAGEMENT COMPONENT */}
         {showKeyInput && (
-          <div className="bg-[rgba(5,13,16,0.9)] border border-[rgba(0,255,60,0.18)] rounded-xl p-5 sm:p-6 shadow-2xl mb-8 transition-all">
-            <div className="flex items-center justify-between mb-3 text-[#00ff3c]">
+          <div className="bg-[rgba(5,13,16,0.95)] border border-[rgba(0,255,60,0.22)] rounded-xl p-5 sm:p-6 shadow-2xl mb-8 transition-all animate-[slideInCard_0.22s_ease_forwards]">
+            <div className="flex items-center justify-between mb-4 text-[#00ff3c]">
               <div className="flex items-center gap-3">
                 <Key className="w-5 h-5" />
-                <h2 className="font-ui text-base sm:text-lg font-bold uppercase tracking-wider">Gemini API Key সেট করুন</h2>
+                <h2 className="font-ui text-base sm:text-lg font-bold uppercase tracking-wider">এপিআই কী কন্ট্রোল সেটিংস</h2>
               </div>
-              {apiKey && (
-                <button 
-                  onClick={() => setShowKeyInput(false)}
-                  className="text-white/60 hover:text-white text-xs font-ui underline"
-                >
-                  বন্ধ করুন
-                </button>
-              )}
-            </div>
-            <p className="text-xs text-[#6b8c72] mb-4 font-ui leading-relaxed">
-              শিরোনাম তৈরির প্রসেস শুরু করতে আপনার Gemini API Key এখানে দিন। আপনার কী সুরক্ষিতভাবে ব্রাউজারের <span className="text-[#00ff3c]">localStorage</span>-এ থাকবে। কোনো দূরবর্তী ব্যাকএন্ড সার্ভারে এটি পাঠানো হবে না।
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="password"
-                value={tempApiKey}
-                onChange={(e) => setTempApiKey(e.target.value)}
-                placeholder="Gemini API Key টাইপ করুন..."
-                className="flex-1 bg-black/60 border border-[rgba(0,255,60,0.18)] rounded px-4 py-3 text-sm font-mono text-white focus:outline-none focus:border-[#00ff3c] transition-all placeholder:text-white/20"
-              />
-              <button
-                onClick={handleSaveApiKey}
-                className="bg-[#00ff3c] text-black font-ui font-bold px-6 py-3 rounded text-sm tracking-wider uppercase hover:bg-emerald-400 active:scale-95 transition-all text-center select-none shrink-0"
+              <button 
+                onClick={() => setShowKeyInput(false)}
+                className="text-white/60 hover:text-[#00ff3c] text-xs font-ui underline cursor-pointer"
               >
-                সেভ করুন
+                বন্ধ করুন
               </button>
             </div>
+
+            {/* Selector Options */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+              {/* Option 1: Rotator */}
+              <div 
+                onClick={() => {
+                  setKeySource('rotator');
+                  localStorage.setItem('gemini_key_source', 'rotator');
+                  showToast('স্বয়ংক্রিয় সিস্টেম কী রোটেটর সক্রিয় হয়েছে');
+                }}
+                className={`border p-4 rounded-lg cursor-pointer transition-all ${
+                  keySource === 'rotator' 
+                    ? 'bg-[rgba(0,255,60,0.08)] border-[#00ff3c]/80 shadow-[0_0_12px_rgba(0,255,60,0.15)]' 
+                    : 'bg-black/40 border-white/10 opacity-60 hover:opacity-90 hover:border-white/20'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] bg-[#00ff3c] text-black px-2 py-0.5 rounded font-logo uppercase font-black tracking-wider shadow">RECOMMENDED</span>
+                  <input 
+                    type="radio" 
+                    checked={keySource === 'rotator'} 
+                    onChange={() => {}} 
+                    className="accent-[#00ff3c] pointer-events-none"
+                  />
+                </div>
+                <h3 className="text-white font-ui font-bold text-sm mb-1">এআই কী রোটেটর (ফ্রি)</h3>
+                <p className="text-[11px] text-[#6b8c72] leading-relaxed">
+                  ৮১টি প্রি-কনফিগার করা সিস্টেম কী পুল। কোনো লিমিট আসলে অটোমেটিক পরবর্তী কী-তে পরিবর্তিত হয়ে রিট্রাই করে। আপনার কোনো কী লাগবে না।
+                </p>
+              </div>
+
+              {/* Option 2: Custom Key */}
+              <div 
+                onClick={() => {
+                  setKeySource('custom');
+                  localStorage.setItem('gemini_key_source', 'custom');
+                  showToast('আমার নিজস্ব API Key মোড সক্রিয় হয়েছে');
+                }}
+                className={`border p-4 rounded-lg cursor-pointer transition-all ${
+                  keySource === 'custom' 
+                    ? 'bg-[rgba(0,180,255,0.08)] border-[#00b4ff]/80 shadow-[0_0_12px_rgba(0,180,255,0.15)]' 
+                    : 'bg-black/40 border-white/10 opacity-60 hover:opacity-90 hover:border-white/20'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] bg-[#00b4ff] text-black px-2 py-0.5 rounded font-logo uppercase font-black tracking-wider shadow">CUSTOM KEY</span>
+                  <input 
+                    type="radio" 
+                    checked={keySource === 'custom'} 
+                    onChange={() => {}} 
+                    className="accent-[#00b4ff] pointer-events-none"
+                  />
+                </div>
+                <h3 className="text-white font-ui font-bold text-sm mb-1">আমার নিজস্ব API Key</h3>
+                <p className="text-[11px] text-[#6b8c72] leading-relaxed">
+                  আপনার গুগল এআই স্টুডিও একাউন্ট থেকে আনা ফ্রি Gemini API Key ব্যবহার করে আনলিমিটেড সার্ভিস নিন। এটি ব্রাউজারেই সেভ থাকে।
+                </p>
+              </div>
+            </div>
+
+            {/* Custom Key Edit Input Box only if Custom is selected */}
+            {keySource === 'custom' && (
+              <div className="mb-4 bg-black/50 border border-[#00b4ff]/25 rounded-lg p-4 animate-[slideInCard_0.15s_ease_forwards]">
+                <p className="text-xs text-[#6297ae] mb-2.5 font-ui leading-relaxed">
+                  আপনার Gemini API Key নিচে দিন। এটি ব্রাউজারের <span className="text-[#00b4ff]">localStorage</span>-এ নিরাপদে স্টোর থাকবে।
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="password"
+                    value={tempApiKey}
+                    onChange={(e) => setTempApiKey(e.target.value)}
+                    placeholder="Gemini API Key টাইপ করুন (AIzaSy...)"
+                    className="flex-1 bg-black/70 border border-[#00b4ff]/40 rounded px-4 py-3 text-sm font-mono text-white focus:outline-none focus:border-[#00b4ff] transition-all placeholder:text-white/20"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSaveApiKey}
+                      className="bg-[#00b4ff] text-black font-ui font-bold px-6 py-3 rounded text-sm tracking-widest uppercase hover:bg-sky-400 active:scale-95 transition-all text-center select-none shrink-0"
+                    >
+                      সেভ করুন
+                    </button>
+                    {apiKey && (
+                      <button
+                        onClick={handleClearApiKey}
+                        className="bg-red-950/40 hover:bg-red-900/60 border border-red-500/30 text-red-400 font-ui font-bold px-4 py-3 rounded text-sm hover:text-red-300 transition-all text-center select-none shrink-0 cursor-pointer"
+                      >
+                        মুছুন
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Shared Model settings footer */}
             <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-white/5 pt-3">
-              <div className="text-[11px] text-[#6b8c72] font-ui">
-                * নির্ধারিত মডেল:
+              <div className="text-[11px] text-[#6b8c72] font-ui flex items-center gap-1.5 flex-wrap">
+                <span>* নির্ধারিত মডেল:</span>
                 <select
                   value={selectedModel}
                   onChange={(e) => setSelectedModel(e.target.value)}
-                  className="bg-black/80 border border-white/10 rounded px-2 py-0.5 ml-1.5 focus:outline-none text-[#00ff3c] font-mono"
+                  className="bg-black/80 border border-white/10 rounded px-2.5 py-1.5 focus:outline-none text-[#00ff3c] font-mono text-xs cursor-pointer"
                 >
                   <option value="gemini-3.5-flash">gemini-3.5-flash (সুপার ফাস্ট)</option>
                   <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview (উন্নত প্রসেসিং)</option>
@@ -800,7 +968,7 @@ export default function App() {
                 rel="noreferrer"
                 className="text-[11px] text-[#00ff3c] hover:underline flex items-center gap-1 font-ui"
               >
-                <span>ফ্রি কী তৈরি করুন</span>
+                <span>ফ্রি কী তৈরি করুন (Google AI Studio)</span>
                 <ExternalLink className="w-2.5 h-2.5" />
               </a>
             </div>
