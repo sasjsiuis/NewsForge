@@ -185,6 +185,7 @@ export default function App() {
   // File loading state
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [imgFailed, setImgFailed] = useState<boolean>(false);
 
   // Audio player state
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -815,12 +816,17 @@ export default function App() {
         <header className="text-center pt-8 pb-8 select-none relative z-10 flex flex-col items-center animate-fade-in">
           <div className="logo-mark flex items-center gap-4 mb-2 justify-center">
             <div className="logo-icon logo-pulse-box w-14 h-14 border-2 border-[#e53e3e] rounded-full overflow-hidden flex items-center justify-center bg-black/40 shadow-[0_0_15px_rgba(229,62,62,0.35)]">
-              <img 
-                src={logoImg} 
-                alt="NewsForge Logo" 
-                className="w-full h-full object-cover select-none pointer-events-none"
-                referrerPolicy="no-referrer"
-              />
+              {!imgFailed ? (
+                <img 
+                  src={logoImg} 
+                  alt="NewsForge Logo" 
+                  className="w-full h-full object-cover select-none pointer-events-none"
+                  referrerPolicy="no-referrer"
+                  onError={() => setImgFailed(true)}
+                />
+              ) : (
+                <Sparkles className="w-6 h-6 text-[#e53e3e]" />
+              )}
             </div>
             <div>
               <div className="logo-text font-logo text-3xl font-black text-white tracking-[3px] uppercase">
