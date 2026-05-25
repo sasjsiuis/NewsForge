@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SYSTEM_API_KEYS, getSavedRotatorIndex, saveRotatorIndex } from './apiKeys';
-const logoImg = "/logo.jpg";
+const logoImg = "/logo01.jpg";
 import { 
   Key, 
   Upload, 
