@@ -156,7 +156,7 @@ export default function App() {
 
   // Load API Key on mount
   useEffect(() => {
-    const savedKey = sessionStorage.getItem('gemini_api_key');
+    const savedKey = localStorage.getItem('gemini_api_key');
     if (savedKey) {
       setApiKey(savedKey);
       setTempApiKey(savedKey);
@@ -195,7 +195,7 @@ export default function App() {
       showToast('Gemini API Key দিন');
       return;
     }
-    sessionStorage.setItem('gemini_api_key', key);
+    localStorage.setItem('gemini_api_key', key);
     setApiKey(key);
     setShowKeyInput(false);
     showToast('API Key সেভ হয়েছে ✓');
@@ -203,7 +203,7 @@ export default function App() {
 
   // Helper: Erase Key
   const handleClearApiKey = () => {
-    sessionStorage.removeItem('gemini_api_key');
+    localStorage.removeItem('gemini_api_key');
     setApiKey('');
     setTempApiKey('');
     setShowKeyInput(true);
@@ -668,7 +668,7 @@ export default function App() {
               )}
             </div>
             <p className="text-xs text-[#6b8c72] mb-4 font-ui leading-relaxed">
-              শিরোনাম তৈরির প্রসেস শুরু করতে আপনার Gemini API Key এখানে দিন। আপনার কী সুরক্ষিতভাবে ব্রাউজারের <span className="text-[#00ff3c]">sessionStorage</span>-এ থাকবে। কোনো দূরবর্তী ব্যাকএন্ড সার্ভারে এটি পাঠানো হবে না।
+              শিরোনাম তৈরির প্রসেস শুরু করতে আপনার Gemini API Key এখানে দিন। আপনার কী সুরক্ষিতভাবে ব্রাউজারের <span className="text-[#00ff3c]">localStorage</span>-এ থাকবে। কোনো দূরবর্তী ব্যাকএন্ড সার্ভারে এটি পাঠানো হবে না।
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <input
