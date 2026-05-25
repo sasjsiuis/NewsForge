@@ -120,6 +120,58 @@ const GENERAL_MODE_PROMPT = `এই ভিডিও/অডিওটি দেখ
   ]
 }`;
 
+const TEXT_NEWS_MODE_PROMPT = `তুমি একজন অভিজ্ঞ বাংলাদেশি 'চিফ নিউজ এডিটর'।
+
+তোমার কাজ:
+নিচে দেওয়া খবর বা টেক্সটটি মনোযোগ দিয়ে পড়ো এবং শুধুমাত্র এই খবরের বাস্তব তথ্যের উপর ভিত্তি করে শিরোনাম তৈরি করো।
+
+কঠিন নিষেধ:
+- টেক্সটে যা নেই তা শিরোনামে লেখা যাবে না।
+- কোনো কাল্পনিক তথ্য, ঘটনা বা উদ্ধৃতি যোগ করা করা যাবে না।
+- নিজের থেকে কোনো তথ্য বানিয়ে দিও না।
+
+শিরোনাম তৈরির নিয়ম:
+১. খবরের সবচেয়ে গুরুত্বপূর্ণ তথ্যটি খুঁজে বের করো।
+২. জনজীবনে প্রভাব ফেলে এমন তথ্যকে প্রাধান্য দাও।
+৩. টেক্সটের শক্তিশালী শব্দ যেমন 'জিরো টলারেন্স', 'কঠোর ব্যবস্থা', 'ছাড় দেওয়া হবে না' — এগুলো সরাসরি উদ্ধৃতি হিসেবে ব্যবহার করো।
+৪. শিরোনাম সংক্ষিপ্ত ও ঝাঁজালো রাখো।
+
+৫টি ক্যাটাগরিতে মোট ৩০টির বেশি শিরোনাম দাও (প্রতি ক্যাটাগরিতে কমপক্ষে ৬টি):
+
+ক্যাটাগরি ১ — "hard" (তথ্যভিত্তিক Hard News):
+বস্তুনিষ্ঠ, তথ্যবহুল। কে কী করলেন বা ঘোষণা দিলেন।
+ক্যাটাগরি ২ — "quote" (উদ্ধৃতিমূলক Direct Quote):
+হুবহু বক্তার কথা বা বক্তব্য থেকে গুরুত্বপূর্ণ উক্তি, একক উদ্ধৃতি চিহ্নে ('...') মুড়িয়ে।
+ক্যাটাগরি ৩ — "warning" (হুঁশিয়ারিমূলক Warning/Action):
+কঠোর সতর্কবার্তা বা শাস্তির ঘোষণা।
+ক্যাটাগরি ৪ — "political" (রাজনৈতিক/আক্রমণাত্মক Political/Conflict):
+রাজনৈতিক প্রতিপক্ষ বা সংঘাতের বিষয়।
+क্যাটাগরি ৫ — "curiosity" (কৌতূহলোদ্দীপক Curiosity/Question):
+দর্শকের মনে প্রশ্ন জাগায়, টকশো বা থাম্বনেইলের জন্য।
+
+শুধুমাত্র নিচের JSON ফরম্যাটে উত্তর দাও, অন্য কোনো টেক্সট, মার্কডাউন বা backtick দেবে না:
+
+{
+  "headlines": [
+    {"cat": "hard",      "text": "শিরোনাম এখানে",      "ts": null},
+    {"cat": "quote",     "text": "'উদ্ধৃতি এখানে'",     "ts": null},
+    {"cat": "warning",   "text": "শিরোনাম এখানে",      "ts": null},
+    {"cat": "political", "text": "শিরোনাম এখানে",      "ts": null},
+    {"cat": "curiosity", "text": "শিরোনাম এখানে?",     "ts": null}
+  ]
+}
+
+ts ফিল্ডে: টেক্সট ইনপুটের ক্ষেত্রে কোনো টাইমস্ট্যাম্প (ts) ফিল্ডের প্রয়োজন নেই, তাই ts সবসময় null রাখবে।`;
+
+const TEXT_GENERAL_MODE_PROMPT = `এই খবর বা টেক্সটটি বিশ্লেষণ করে ১০-১৫টি আকর্ষণীয় বাংলা শিরোনাম বা সোশ্যাল মিডিয়া ক্যাপশন তৈরি করো। শুধুমাত্র লেখার বিষয়বস্তুর উপর ভিত্তি করে শিরোনাম দাও।
+
+শুধুমাত্র JSON ফরম্যাটে দাও, অন্য কোনো টেক্সট বা backtick দেবে না:
+{
+  "headlines": [
+    {"cat": "general", "text": "শিরোনাম এখানে", "ts": null}
+  ]
+}`;
+
 export default function App() {
   // Key state
   const [apiKey, setApiKey] = useState<string>('');
@@ -138,6 +190,9 @@ export default function App() {
   // Option states
   const [videoType, setVideoType] = useState<'news' | 'general'>('news');
   const [selectedModel, setSelectedModel] = useState<string>('gemini-3.5-flash');
+  const [inputMode, setInputMode] = useState<'media' | 'text'>('media');
+  const [inputText, setInputText] = useState<string>('');
+  const [speakerName, setSpeakerName] = useState<string>('');
 
   // AI & results execution states
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
@@ -345,28 +400,80 @@ export default function App() {
       setShowKeyInput(true);
       return;
     }
-    if (!uploadedFile) {
+    if (inputMode === 'media' && !uploadedFile) {
       showToast('আগে একটি ফাইল আপলোড করুন');
+      return;
+    }
+    if (inputMode === 'text' && !inputText.trim()) {
+      showToast('বিশ্লেষণ করার জন্য আপনার খবর বা টেক্সটটি লিখুন');
       return;
     }
 
     try {
       setIsAnalyzing(true);
       setProgress(10);
-      setStatusMessage('ফাইলটি পড়া হচ্ছে...');
+      setStatusMessage(inputMode === 'media' ? 'ফাইলটি পড়া হচ্ছে...' : 'টেক্সট বা লেখাটি প্রস্তুত করা হচ্ছে...');
 
-      // Convert file
-      setProgress(25);
-      setStatusMessage('বেস-৬৪ অডিও রূপান্তর করা হচ্ছে...');
-      const base64Data = await readFileAsBase64(uploadedFile);
+      const contents = [];
 
-      setProgress(45);
-      setStatusMessage('এআই ইনস্ট্রাকশন তৈরি করা হচ্ছে...');
-      const mimeType = uploadedFile.type || 'audio/mp3';
-      const promptText = videoType === 'news' ? NEWS_MODE_PROMPT : GENERAL_MODE_PROMPT;
+      if (inputMode === 'media') {
+        // Convert file
+        setProgress(25);
+        setStatusMessage('বেস-৬৪ অডিও রূপান্তর করা হচ্ছে...');
+        const base64Data = await readFileAsBase64(uploadedFile!);
 
-      setProgress(60);
-      setStatusMessage('এআই ইঞ্জিনে অডিও পাঠানো হচ্ছে (কিছুসময় লাগতে পারে)...');
+        setProgress(45);
+        setStatusMessage('এআই ইনস্ট্রাকশন তৈরি করা হচ্ছে...');
+        const mimeType = uploadedFile!.type || 'audio/mp3';
+        let promptText = videoType === 'news' ? NEWS_MODE_PROMPT : GENERAL_MODE_PROMPT;
+
+        if (speakerName.trim()) {
+          promptText = `খবরের প্রধান ব্যক্তি বা বক্তার নাম/পদবি: "${speakerName.trim()}".
+গুরুত্বপূর্ণ নির্দেশাবলী:
+তুমি যে শিরোনামগুলো তৈরি করবে সেগুলোতে অবশ্যই এই ব্যক্তির নাম এবং পদবির প্রাসঙ্গিক উল্লেখ ব্যবহার করার সর্বোচ্চ চেষ্টা করবে। যেমন: '${speakerName.trim()}-এর ঘোষণা...', '${speakerName.trim()} জানালেন...', '${speakerName.trim()}-এর আশ্বাস...' বা ইত্যাদি বাস্তবসম্মত রূপ।\n\n${promptText}`;
+        }
+
+        contents.push({
+          parts: [
+            {
+              inlineData: {
+                mimeType: mimeType,
+                data: base64Data
+              }
+            },
+            {
+              text: promptText
+            }
+          ]
+        });
+      } else {
+        // Text Analyze Mode
+        setProgress(30);
+        setStatusMessage('খবরের তথ্য বিশ্লেষণ প্রসেস শুরু হচ্ছে...');
+        let promptText = videoType === 'news' ? TEXT_NEWS_MODE_PROMPT : TEXT_GENERAL_MODE_PROMPT;
+        
+        if (speakerName.trim()) {
+          promptText = `খবরের প্রধান ব্যক্তি বা বক্তার নাম/পদবি: "${speakerName.trim()}".
+গুরুত্বপূর্ণ নির্দেশাবলী:
+তুমি শিরোনাম বা সামাজিক যোগাযোগমাধ্যমের ক্যাপশনগুলো লেখার সময় এই ব্যক্তির নাম/পদবিকে প্রাসঙ্গিক শিরোনামগুলোতে সুন্দরভাবে ব্যবহার করবে। যেমন: '${speakerName.trim()}-এর...' বা '${speakerName.trim()} নিয়ে...'\n\n${promptText}`;
+        }
+        
+        setProgress(55);
+        setStatusMessage('এআই ইনস্ট্রাকশন সেটআপ করা হচ্ছে...');
+        
+        contents.push({
+          parts: [
+            {
+              text: `বিশ্লেষণ করার টেক্সট:\n"""\n${inputText}\n"""\n\nইনস্ট্রাকশন:\n${promptText}`
+            }
+          ]
+        });
+      }
+
+      setProgress(70);
+      setStatusMessage(inputMode === 'media' 
+        ? 'এআই ইঞ্জিনে অডিও পাঠানো হচ্ছে (কিছুসময় লাগতে পারে)...' 
+        : 'এআই ইঞ্জিনে খবরটি পাঠিয়ে শিরোনাম বাছা হচ্ছে...');
 
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
 
@@ -376,19 +483,7 @@ export default function App() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          contents: [{
-            parts: [
-              {
-                inlineData: {
-                  mimeType: mimeType,
-                  data: base64Data
-                }
-              },
-              {
-                text: promptText
-              }
-            ]
-          }],
+          contents: contents,
           generationConfig: {
             temperature: 0.8,
             maxOutputTokens: 8192,
@@ -403,7 +498,7 @@ export default function App() {
       if (!response.ok) {
         const errorVal = response.status;
         if (errorVal === 400) {
-          showToast('ফাইল ফরম্যাট সাপোর্টেড নয়');
+          showToast('ফাইল ফরম্যাট বা ইনপুট ডেটা সাপোর্টেড নয়');
         } else if (errorVal === 429) {
           showToast('API রেট লিমিট, কিছুক্ষণ পর চেষ্টা করুন');
         } else {
@@ -515,6 +610,8 @@ export default function App() {
   // Reset or Refresh App (Section 5.9)
   const handleRefreshApp = () => {
     setUploadedFile(null);
+    setInputText('');
+    setSpeakerName('');
     setAccumulatedHeadlines([]);
     setDisplayedHeadlines([]);
     setIsPlaying(false);
@@ -710,131 +807,249 @@ export default function App() {
           </div>
         )}
 
-        {/* SECTION 5.1: INTEGRATED FILE UPLOAD ZONE (From Mockup UI) */}
-        {!uploadedFile ? (
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={triggerFileInputClick}
-            className={`upload-zone relative border-2 border-dashed rounded-xl p-9 text-center cursor-pointer select-none transition-all duration-300 ${
-              isDragging 
-                ? 'border-[#00ff3c] bg-[rgba(0,255,60,0.06)]' 
-                : 'border-[rgba(0,255,60,0.18)] bg-[rgba(0,255,60,0.04)] hover:border-[#00ff3c]'
+        {/* INPUT MODE SWITCHER TABS WITH HIGH-CONTRAST BORDERS */}
+        <div className="flex bg-[#050d10]/95 border border-[rgba(0,255,60,0.22)] rounded-xl p-1.5 mb-6 relative z-10 shadow-[0_4px_20px_rgba(0,2,0,0.6)]">
+          <button
+            onClick={() => {
+              setInputMode('media');
+              setAccumulatedHeadlines([]);
+              setDisplayedHeadlines([]);
+            }}
+            className={`flex-1 py-3 text-[11px] sm:text-xs font-ui font-bold rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer select-none ${
+              inputMode === 'media'
+                ? 'bg-[#00ff3c] text-black shadow-[0_0_12px_rgba(0,255,60,0.25)]'
+                : 'text-[#6b8c72] hover:text-white hover:bg-white/5'
             }`}
           >
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              accept="audio/*,video/*"
-              className="hidden"
-            />
-            <div className="upload-icon w-[52px] h-[52px] border border-[rgba(0,255,60,0.18)] rounded-full mx-auto mb-3.5 flex items-center justify-center transition-all">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="#6b8c72" strokeWidth="1.5"/>
-                <polyline points="17 8 12 3 7 8" stroke="#6b8c72" strokeWidth="1.5"/>
-                <line x1="12" y1="3" x2="12" y2="15" stroke="#6b8c72" strokeWidth="1.5"/>
-              </svg>
-            </div>
-            <div className="upload-title font-bangla text-base text-white mb-1.5 font-medium">অডিও বা ভিডিও ফাইল আপলোড করুন</div>
-            <div className="upload-hint text-xs text-[#6b8c72] font-ui">MP3, MP4, WAV, M4A, OGG সাপোর্টেড • সর্বোচ্চ ১ GB</div>
-          </div>
-        ) : (
-          <div className="file-info flex bg-[rgba(0,255,60,0.06)] border border-[rgba(0,255,60,0.18)] rounded-lg p-3.5 px-4 mb-4 items-center gap-3 animate-[slideInCard_0.2s_ease_forwards]">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-[#00ff3c]">
-              <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" stroke="#00ff3c" strokeWidth="1.5"/>
-              <polyline points="13 2 13 9 20 9" stroke="#00ff3c" strokeWidth="1.5"/>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
             </svg>
-            <span className="file-name text-xs md:text-sm text-[#00ff3c] flex-1 font-semibold truncate select-text">
-              {uploadedFile.name}
-            </span>
-            <span className="file-size text-xs text-[#6b8c72] mr-3 shrink-0 uppercase select-all font-mono">
-              {formatFileSize(uploadedFile.size)}
-            </span>
-            <button
-              onClick={() => {
-                setUploadedFile(null);
-                setAccumulatedHeadlines([]);
-                setDisplayedHeadlines([]);
-                setIsPlaying(false);
-                setCurrentTime(0);
-                setDuration(0);
-                showToast('ফাইল সরানো হয়েছে');
-              }}
-              className="text-[#ff3838] hover:text-red-500 font-ui font-semibold hover:underline text-xs outline-none select-none shrink-0 cursor-pointer"
-            >
-              ফাইল পরিবর্তন (Change File)
-            </button>
-          </div>
-        )}
+            <span>মিডিয়া আপলোড (Audio/Video File)</span>
+          </button>
+          <button
+            onClick={() => {
+              setInputMode('text');
+              setAccumulatedHeadlines([]);
+              setDisplayedHeadlines([]);
+            }}
+            className={`flex-1 py-3 text-[11px] sm:text-xs font-ui font-bold rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer select-none ${
+              inputMode === 'text'
+                ? 'bg-[#00ff3c] text-black shadow-[0_0_12px_rgba(0,255,60,0.25)]'
+                : 'text-[#6b8c72] hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+            <span>টেক্সট ইনপুট (Article/News Text)</span>
+          </button>
+        </div>
 
-        {/* AUDIO PLAYER (visual mockup matched with logic) */}
-        {uploadedFile && (
-          <div className="audio-wrap flex flex-wrap bg-black/40 border border-[rgba(0,255,60,0.18)] rounded-xl p-3.5 px-4 mb-4 items-center gap-3.5 relative">
-            <button 
-              onClick={togglePlay}
-              className="play-btn w-10 h-10 rounded-full border border-[#00ff3c] bg-[rgba(0,255,60,0.1)] text-[#00ff3c] cursor-pointer flex items-center justify-center transition-all shrink-0 shadow-[0_0_15px_rgba(0,255,60,0.3)] hover:bg-[rgba(0,255,60,0.2)]"
-              title={isPlaying ? "মিউট করুন" : "প্লে করুন"}
-            >
-              {isPlaying ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="#00ff3c">
-                  <rect x="6" y="4" width="4" height="16" />
-                  <rect x="14" y="4" width="4" height="16" />
-                </svg>
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="#00ff3c">
-                  <polygon points="5 3 19 12 5 21 5 3" />
-                </svg>
-              )}
-            </button>
-
-            <div className="waveform-wrap flex-1 min-w-[150px]">
-              <div className={`waveform-bars flex items-end gap-[2px] h-8 ${isPlaying ? 'playing' : ''}`}>
-                {Array.from({ length: 32 }).map((_, i) => {
-                  const idleH = Math.floor(Math.sin((i / 31) * Math.PI) * 16 + 8);
-                  const delay = (i * 0.025).toFixed(3);
-                  return (
-                    <div
-                      key={i}
-                      className={`bar flex-1 rounded-[2px] min-h-[3px] transition-all`}
-                      style={{
-                        height: `${idleH}px`,
-                        backgroundColor: isPlaying ? 'var(--neon)' : 'var(--border)',
-                        animationDelay: `${delay}s`,
-                        animationDuration: '0.8s',
-                        animationName: isPlaying ? 'waveAnim' : 'none',
-                        transformOrigin: 'bottom'
-                      } as React.CSSProperties}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 shrink-0">
-              <span className="time-display font-logo text-[11px] text-[#6b8c72]">
-                {formatTime(currentTime)} / {formatTime(duration)}
-              </span>
-              <div className="w-20 sm:w-28 flex items-center">
+        {/* INTEGRATED SOURCE ZONE */}
+        {inputMode === 'media' ? (
+          <>
+            {/* FILE UPLOAD ZONE */}
+            {!uploadedFile ? (
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={triggerFileInputClick}
+                className={`upload-zone relative border-2 border-dashed rounded-xl p-9 text-center cursor-pointer select-none transition-all duration-300 ${
+                  isDragging 
+                    ? 'border-[#00ff3c] bg-[rgba(0,255,60,0.06)]' 
+                    : 'border-[rgba(0,255,60,0.18)] bg-[rgba(0,255,60,0.04)] hover:border-[#00ff3c]'
+                }`}
+              >
                 <input
-                  type="range"
-                  min={0}
-                  max={duration || 100}
-                  value={currentTime}
-                  onChange={handleSeek}
-                  className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#00ff3c] focus:outline-none"
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="audio/*,video/*"
+                  className="hidden"
                 />
+                <div className="upload-icon w-[52px] h-[52px] border border-[rgba(0,255,60,0.18)] rounded-full mx-auto mb-3.5 flex items-center justify-center transition-all">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="#6b8c72" strokeWidth="1.5"/>
+                    <polyline points="17 8 12 3 7 8" stroke="#6b8c72" strokeWidth="1.5"/>
+                    <line x1="12" y1="3" x2="12" y2="15" stroke="#6b8c72" strokeWidth="1.5"/>
+                  </svg>
+                </div>
+                <div className="upload-title font-bangla text-base text-white mb-1.5 font-medium">অডিও বা ভিডিও ফাইল আপলোড করুন</div>
+                <div className="upload-hint text-xs text-[#6b8c72] font-ui">MP3, MP4, WAV, M4A, OGG সাপোর্টেড • সর্বোচ্চ ১ GB</div>
+              </div>
+            ) : (
+              <div className="file-info flex bg-[rgba(0,255,60,0.06)] border border-[rgba(0,255,60,0.18)] rounded-lg p-3.5 px-4 mb-4 items-center gap-3 animate-[slideInCard_0.2s_ease_forwards]">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-[#00ff3c]">
+                  <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" stroke="#00ff3c" strokeWidth="1.5"/>
+                  <polyline points="13 2 13 9 20 9" stroke="#00ff3c" strokeWidth="1.5"/>
+                </svg>
+                <span className="file-name text-xs md:text-sm text-[#00ff3c] flex-1 font-semibold truncate select-text">
+                  {uploadedFile.name}
+                </span>
+                <span className="file-size text-xs text-[#6b8c72] mr-3 shrink-0 uppercase select-all font-mono">
+                  {formatFileSize(uploadedFile.size)}
+                </span>
+                <button
+                  onClick={() => {
+                    setUploadedFile(null);
+                    setAccumulatedHeadlines([]);
+                    setDisplayedHeadlines([]);
+                    setIsPlaying(false);
+                    setCurrentTime(0);
+                    setDuration(0);
+                    showToast('ফাইল সরানো হয়েছে');
+                  }}
+                  className="text-[#ff3838] hover:text-red-500 font-ui font-semibold hover:underline text-xs outline-none select-none shrink-0 cursor-pointer"
+                >
+                  ফাইল পরিবর্তন (Change File)
+                </button>
+              </div>
+            )}
+
+            {/* AUDIO PLAYER (visual mockup matched with logic) */}
+            {uploadedFile && (
+              <div className="audio-wrap flex flex-wrap bg-black/40 border border-[rgba(0,255,60,0.18)] rounded-xl p-3.5 px-4 mb-4 items-center gap-3.5 relative">
+                <button 
+                  onClick={togglePlay}
+                  className="play-btn w-10 h-10 rounded-full border border-[#00ff3c] bg-[rgba(0,255,60,0.1)] text-[#00ff3c] cursor-pointer flex items-center justify-center transition-all shrink-0 shadow-[0_0_15px_rgba(0,255,60,0.3)] hover:bg-[rgba(0,255,60,0.2)]"
+                  title={isPlaying ? "মিউট করুন" : "প্লে করুন"}
+                >
+                  {isPlaying ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#00ff3c">
+                      <rect x="6" y="4" width="4" height="16" />
+                      <rect x="14" y="4" width="4" height="16" />
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#00ff3c">
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                  )}
+                </button>
+
+                <div className="waveform-wrap flex-1 min-w-[150px]">
+                  <div className={`waveform-bars flex items-end gap-[2px] h-8 ${isPlaying ? 'playing' : ''}`}>
+                    {Array.from({ length: 32 }).map((_, i) => {
+                      const idleH = Math.floor(Math.sin((i / 31) * Math.PI) * 16 + 8);
+                      const delay = (i * 0.025).toFixed(3);
+                      return (
+                        <div
+                          key={i}
+                          className={`bar flex-1 rounded-[2px] min-h-[3px] transition-all`}
+                          style={{
+                            height: `${idleH}px`,
+                            backgroundColor: isPlaying ? 'var(--neon)' : 'var(--border)',
+                            animationDelay: `${delay}s`,
+                            animationDuration: '0.8s',
+                            animationName: isPlaying ? 'waveAnim' : 'none',
+                            transformOrigin: 'bottom'
+                          } as React.CSSProperties}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="time-display font-logo text-[11px] text-[#6b8c72]">
+                    {formatTime(currentTime)} / {formatTime(duration)}
+                  </span>
+                  <div className="w-20 sm:w-28 flex items-center">
+                    <input
+                      type="range"
+                      min={0}
+                      max={duration || 100}
+                      value={currentTime}
+                      onChange={handleSeek}
+                      className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#00ff3c] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="bg-[rgba(5,13,16,0.6)] border border-[rgba(0,255,60,0.18)] rounded-xl p-5 mb-5 relative z-10 animate-[slideInCard_0.2s_ease_forwards] shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
+            <div className="flex items-center gap-3.5 mb-3 text-[#00ff3c]">
+              <div className="p-2 bg-[rgba(0,255,60,0.06)] rounded border border-[rgba(0,255,60,0.12)]">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+              </div>
+              <div>
+                <p className="font-ui text-sm font-bold text-white leading-tight">আপনার সংবাদের বিবরণ বা লেখার কপি এখানে পেস্ট করুন</p>
+                <p className="text-[10px] text-[#6b8c72] mt-0.5 font-ui">সম্পূর্ণ সংবাদ নিবন্ধ বা স্ক্রিপ্ট পেস্ট করুন। AI এটি নিখুঁতভাবে বিশ্লেষণ করে সংবাদ শিরোনাম তৈরি করবে।</p>
               </div>
             </div>
+            
+            <textarea
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder="এখানে আপনার খবর, স্ক্রিপ্ট বা প্যারাগ্রাফটি পেস্ট করুন..."
+              rows={8}
+              className="w-full bg-black/60 border border-[rgba(0,255,60,0.18)] rounded-lg p-4 font-bangla text-sm text-white focus:outline-none focus:border-[#00ff3c] transition-all placeholder:text-white/20 resize-y leading-relaxed font-medium"
+            />
+            {inputText.trim() && (
+              <div className="flex justify-between items-center mt-2.5 px-1 font-logo text-[10px] text-[#6b8c72]">
+                <span>{inputText.trim().length} অক্ষরের টেক্সট ইনপুট দেওয়া হয়েছে</span>
+                <button
+                  onClick={() => {
+                    setInputText('');
+                    setAccumulatedHeadlines([]);
+                    setDisplayedHeadlines([]);
+                    showToast('ইনপুট খালি করা হয়েছে');
+                  }}
+                  className="text-red-400 hover:text-red-300 font-ui cursor-pointer select-none outline-none font-bold hover:underline"
+                >
+                  ইনপুট মুছুন (Clear Insert Details)
+                </button>
+              </div>
+            )}
           </div>
         )}
 
         {/* SECTION 5.3: SELECTOR MODE ENGINE */}
-        {uploadedFile && (
-          <div className="bg-[rgba(5,13,16,0.6)] border border-[rgba(0,255,60,0.18)] rounded-xl p-5 mb-6 relative z-10">
+        {((inputMode === 'media' && uploadedFile) || (inputMode === 'text' && inputText.trim().length > 0)) && (
+          <div className="bg-[rgba(5,13,16,0.6)] border border-[rgba(0,255,60,0.18)] rounded-xl p-5 mb-6 relative z-10 animate-[slideInCard_0.2s_ease_forwards]">
+            
+            {/* Optional Speaker Name Input Field */}
+            <div className="mb-5 border-b border-white/5 pb-5">
+              <label className="block text-xs font-semibold text-[#00ff3c] uppercase tracking-wider mb-2 font-ui">
+                বক্তার নাম, পদবি বা প্রধান ব্যক্তি (ঐচ্ছিক) / Speaker/Author Name (Optional)
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={speakerName}
+                  onChange={(e) => setSpeakerName(e.target.value)}
+                  placeholder="যেমন: খন্দকার মুক্তাদির, পরিকল্পনামন্ত্রী, ওবায়দুল কাদের ইত্যাদি..."
+                  className="w-full bg-black/60 border border-[rgba(0,255,60,0.18)] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#00ff3c] transition-all placeholder:text-white/20 leading-relaxed font-bangla font-medium"
+                />
+                {speakerName && (
+                  <button
+                    onClick={() => setSpeakerName('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-red-400 hover:text-red-300 font-ui cursor-pointer select-none outline-none font-bold"
+                  >
+                    মুছুন
+                  </button>
+                )}
+              </div>
+              <p className="text-[10px] text-[#6b8c72] mt-1.5 font-ui">
+                * এখানে নাম বা পদবি দিলে এআই (AI) বক্তব্যের উৎস মেলাবে এবং শিরোনামে চমৎকার আশ্বস্তকরণ বিশেষণ (যেমন: 'মন্ত্রীর আশ্বাস' অথবা 'খন্দকার মুক্তাদিরের আশ্বস্তকরণ') তৈরি করবে।
+              </p>
+            </div>
+
             <h4 className="font-ui text-xs font-semibold text-[#00ff3c] uppercase tracking-wider mb-4 text-center select-none">
-              এআই অ্যানালিটিক্স ভিডিও মোড সিলেক্ট করুন
+              {inputMode === 'media' ? "এআই অ্যানালিটিক্স ভিডিও মোড সিলেক্ট করুন" : "এআই অ্যানালিটিক্স টেক্সট মোড সিলেক্ট করুন"}
             </h4>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -856,8 +1071,12 @@ export default function App() {
                   <Radio className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="font-ui text-sm font-bold text-white leading-tight">নিউজ ভিডিও / রাজনৈতিক বক্তব্য</p>
-                  <p className="text-[10px] text-[#6b8c72] mt-0.5 font-ui">৫টি ক্যাটাগরিতে ৩০টির বেশি পেশাদার সংবাদ শিরোনাম দেবে</p>
+                  <p className="font-ui text-sm font-bold text-white leading-tight">
+                    {inputMode === 'media' ? "নিউজ ভিডিও / রাজনৈতিক বক্তব্য" : "সংবাদ ও রাজনৈতিক টেক্সট / আর্টিকেল"}
+                  </p>
+                  <p className="text-[10px] text-[#6b8c72] mt-0.5 font-ui">
+                    {inputMode === 'media' ? "৫টি ক্যাটাগরিতে ৩০টির বেশি পেশাদার সংবাদ শিরোনাম দেবে" : "৫টি ক্যাটাগরিতে ৩০টির বেশি পেশাদার সংবাদ শিরোনাম বিশ্লেষণ করে দেবে"}
+                  </p>
                 </div>
               </label>
 
@@ -879,8 +1098,12 @@ export default function App() {
                   <Activity className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="font-ui text-sm font-bold text-white leading-tight">সাধারণ ভিডিও / অন্যান্য কন্টেন্ট</p>
-                  <p className="text-[10px] text-[#6b8c72] mt-0.5 font-ui">সোশ্যাল মিডিয়া ক্যাপশন ও ১০-১৫টি মৌলিক বাংলা শিরোনাম দেবে</p>
+                  <p className="font-ui text-sm font-bold text-white leading-tight">
+                    {inputMode === 'media' ? "সাধারণ ভিডিও / অন্যান্য কন্টেন্ট" : "সাধারণ লেখা / অন্যান্য প্রবন্ধ নিবন্ধ"}
+                  </p>
+                  <p className="text-[10px] text-[#6b8c72] mt-0.5 font-ui">
+                    {inputMode === 'media' ? "সোশ্যাল মিডিয়া ক্যাপশন ও ১০-১৫টি মৌলিক বাংলা শিরোনাম দেবে" : "সোশ্যাল মিডিয়া ক্যাপশন ও ১০-১৫টি মৌলিক বাংলা শিরোনাম বিশ্লেষণ করে দেবে"}
+                  </p>
                 </div>
               </label>
             </div>
@@ -888,14 +1111,14 @@ export default function App() {
         )}
 
         {/* BUTTON ACTION MATRIX */}
-        {uploadedFile && (
-          <div className="flex flex-wrap gap-2.5 mt-6 mb-6 select-none justify-center relative z-10 w-full">
+        {((inputMode === 'media' && uploadedFile) || (inputMode === 'text' && inputText.trim().length > 0)) && (
+          <div className="flex flex-wrap gap-2.5 mt-6 mb-6 select-none justify-center relative z-10 w-full animate-[slideInCard_0.2s_ease_forwards]">
             <button
               onClick={() => generateHeadlines(false)}
               disabled={isAnalyzing}
-              className="inline-flex items-center gap-2 px-5 py-3 rounded bg-[#00ff3c] text-black font-semibold font-ui text-xs tracking-wider transition-all shadow-[0_0_20px_rgba(0,255,60,0.3)] hover:shadow-[0_0_30px_rgba(0,255,60,0.6)] cursor-pointer disabled:opacity-40 disabled:pointer-events-none select-none uppercase active:scale-98"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded bg-[#00ff3c] text-black font-semibold font-ui text-xs tracking-wider transition-all shadow-[0_0_20px_rgba(0,255,60,0.3)] hover:shadow-[0_0_30px_rgba(0,255,60,0.6)] cursor-pointer disabled:opacity-40 disabled:pointer-events-none select-none uppercase active:scale-98 font-bold"
             >
-              <Sparkles className="w-3.5 h-3.5" />
+              <Sparkles className="w-3.5 h-3.5 text-black" />
               <span>শিরোনাম তৈরি করুন</span>
             </button>
 
@@ -916,7 +1139,7 @@ export default function App() {
               title="রিফ্রেশ করুন"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              <span>রিফ্রেশ</span>
+              <span>রিসেট (Reset)</span>
             </button>
           </div>
         )}
