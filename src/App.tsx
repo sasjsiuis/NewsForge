@@ -17,7 +17,8 @@ import {
   Radio, 
   AlertCircle, 
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  Share2
 } from 'lucide-react';
 
 // Type definitions
@@ -99,7 +100,7 @@ const NEWS_MODE_PROMPT = `তুমি একজন অভিজ্ঞ বাং
 ক্যাটাগরি ৫ — "curiosity" (কৌতূহলোদ্দীপক Curiosity/Question):
 দর্শকের মনে প্রশ্ন জাগায়, টকশো বা থাম্বনেইলের জন্য।
 
-শুধুমাত্র এবং অবশ্যই বৈধ JSON ফরম্যাটে উত্তর দাও, অন্য কোনো টেক্সট, মার্কডাউন বা backtick দেবে না। JSON-টি অবশ্যই { দিয়ে শুরু এবং } দিয়ে শেষ হবে:
+শুধুমাত্র নিচের JSON ফরম্যাটে উত্তর দাও, অন্য কোনো টেক্সট, মার্কডাউন বা backtick দেবে না:
 
 {
   "headlines": [
@@ -115,7 +116,7 @@ ts ফিল্ডে: উদ্ধৃতির জন্য আনুমান�
 
 const GENERAL_MODE_PROMPT = `এই ভিডিও/অডিওটি দেখো/শোনো এবং বিষয়বস্তু বিশ্লেষণ করে ১০-১৫টি আকর্ষণীয় বাংলা শিরোনাম বা ক্যাপশন তৈরি করো। শুধুমাত্র ভিডিওতে যা আছে তার উপর ভিত্তি করে শিরোনাম দাও।
 
-শুধুমাত্র এবং অবশ্যই বৈধ JSON ফরম্যাটে উত্তর দাও, অন্য কোনো টেক্সট, মার্কডাউন বা backtick দেবে না। JSON-টি অবশ্যই { দিয়ে শুরু এবং } দিয়ে শেষ হবে:
+শুধুমাত্র JSON ফরম্যাটে দাও, অন্য কোনো টেক্সট বা backtick দেবে না:
 {
   "headlines": [
     {"cat": "general", "text": "শিরোনাম এখানে", "ts": null}
@@ -151,7 +152,7 @@ const TEXT_NEWS_MODE_PROMPT = `তুমি একজন অভিজ্ঞ ব�
 क্যাটাগরি ৫ — "curiosity" (কৌতূহলোদ্দীপক Curiosity/Question):
 দর্শকের মনে প্রশ্ন জাগায়, টকশো বা থাম্বনেইলের জন্য।
 
-শুধুমাত্র এবং অবশ্যই বৈধ JSON ফরম্যাটে উত্তর দাও, অন্য কোনো টেক্সট, মার্কডাউন বা backtick দেবে না। JSON-টি অবশ্যই { দিয়ে শুরু এবং } দিয়ে শেষ হবে:
+শুধুমাত্র নিচের JSON ফরম্যাটে উত্তর দাও, অন্য কোনো টেক্সট, মার্কডাউন বা backtick দেবে না:
 
 {
   "headlines": [
@@ -167,7 +168,7 @@ ts ফিল্ডে: টেক্সট ইনপুটের ক্ষেত�
 
 const TEXT_GENERAL_MODE_PROMPT = `এই খবর বা টেক্সটটি বিশ্লেষণ করে ১০-১৫টি আকর্ষণীয় বাংলা শিরোনাম বা সোশ্যাল মিডিয়া ক্যাপশন তৈরি করো। শুধুমাত্র লেখার বিষয়বস্তুর উপর ভিত্তি করে শিরোনাম দাও।
 
-শুধুমাত্র এবং অবশ্যই বৈধ JSON ফরম্যাটে উত্তর দাও, অন্য কোনো টেক্সট, মার্কডাউন বা backtick দেবে না। JSON-টি অবশ্যই { দিয়ে শুরু এবং } দিয়ে শেষ হবে:
+শুধুমাত্র JSON ফরম্যাটে দাও, অন্য কোনো টেক্সট বা backtick দেবে না:
 {
   "headlines": [
     {"cat": "general", "text": "শিরোনাম এখানে", "ts": null}
@@ -189,6 +190,7 @@ export default function App() {
 
   // Audio player state
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [showFloatingPlayer, setShowFloatingPlayer] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
 
@@ -259,6 +261,46 @@ export default function App() {
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 3200);
+  };
+
+  // Helper: Play unique dual-note chime notification sound
+  const playNotificationChime = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      
+      const audioCtx = new AudioCtx();
+      
+      // Note 1: E5 (659.25 Hz)
+      const osc1 = audioCtx.createOscillator();
+      const gain1 = audioCtx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(659.25, audioCtx.currentTime);
+      gain1.gain.setValueAtTime(0, audioCtx.currentTime);
+      gain1.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + 0.04);
+      gain1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+      
+      osc1.connect(gain1);
+      gain1.connect(audioCtx.destination);
+      osc1.start(audioCtx.currentTime);
+      osc1.stop(audioCtx.currentTime + 0.4);
+
+      // Note 2: A5 (880.00 Hz) - offset for melodic chime
+      const osc2 = audioCtx.createOscillator();
+      const gain2 = audioCtx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(880.00, audioCtx.currentTime + 0.07);
+      gain2.gain.setValueAtTime(0, audioCtx.currentTime + 0.07);
+      gain2.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + 0.11);
+      gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.42);
+      
+      osc2.connect(gain2);
+      gain2.connect(audioCtx.destination);
+      osc2.start(audioCtx.currentTime + 0.07);
+      osc2.stop(audioCtx.currentTime + 0.45);
+    } catch (err) {
+      console.warn('Notification audio failed:', err);
+    }
   };
 
   // Helper: Save API Key
@@ -340,7 +382,10 @@ export default function App() {
       setIsPlaying(false);
     } else {
       audioRef.current.play()
-        .then(() => setIsPlaying(true))
+        .then(() => {
+          setIsPlaying(true);
+          setShowFloatingPlayer(true);
+        })
         .catch(err => {
           console.error("Audio playback error:", err);
           showToast('প্লে করতে ব্যর্থ হয়েছে');
@@ -373,7 +418,10 @@ export default function App() {
     audioRef.current.currentTime = seconds;
     setCurrentTime(seconds);
     if (audioRef.current.paused) {
-      audioRef.current.play().then(() => setIsPlaying(true));
+      audioRef.current.play().then(() => {
+        setIsPlaying(true);
+        setShowFloatingPlayer(true);
+      });
     }
     showToast(`⏱ ${timeString} সময়ে নিয়ে যাওয়া হয়েছে`);
   };
@@ -612,10 +660,70 @@ export default function App() {
       let parsedData: any = null;
       let sanitized = rawText.trim();
 
+      // Robust helper to complete and repair truncated JSON structures
+      const repairTruncatedJSON = (jsonStr: string): string => {
+        let str = jsonStr.trim();
+        if (!str) return '';
+
+        let inString = false;
+        let escape = false;
+        const stack: string[] = [];
+
+        for (let i = 0; i < str.length; i++) {
+          const char = str[i];
+          if (escape) {
+            escape = false;
+            continue;
+          }
+          if (char === '\\') {
+            escape = true;
+            continue;
+          }
+          if (char === '"') {
+            inString = !inString;
+            continue;
+          }
+          if (!inString) {
+            if (char === '{' || char === '[') {
+              stack.push(char);
+            } else if (char === '}') {
+              if (stack[stack.length - 1] === '{') {
+                stack.pop();
+              }
+            } else if (char === ']') {
+              if (stack[stack.length - 1] === '[') {
+                stack.pop();
+              }
+            }
+          }
+        }
+
+        if (inString) {
+          str += '"';
+        }
+
+        str = str.trim();
+        while (str.endsWith(',') || str.endsWith(':')) {
+          str = str.slice(0, -1).trim();
+        }
+
+        while (stack.length > 0) {
+          const opening = stack.pop();
+          if (opening === '{') {
+            str += '}';
+          } else if (opening === '[') {
+            str += ']';
+          }
+        }
+
+        return str;
+      };
+
+      // Tier 1: Direct Parsing Attempt
       try {
         parsedData = JSON.parse(sanitized);
       } catch (directError) {
-        // Direct parsing failed, try extracting JSON from markdown or between braces
+        // Tier 2: Extract JSON from markdown backticks
         let cleaned = sanitized;
         if (cleaned.includes('```json')) {
           cleaned = cleaned.split('```json')[1].split('```')[0].trim();
@@ -626,7 +734,7 @@ export default function App() {
         try {
           parsedData = JSON.parse(cleaned);
         } catch (markdownError) {
-          // Fall back to extracting first brace '{' to last brace '}'
+          // Tier 3: Extract from first '{' to last '}'
           const firstBrace = cleaned.indexOf('{');
           const lastBrace = cleaned.lastIndexOf('}');
           if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
@@ -634,20 +742,108 @@ export default function App() {
             try {
               parsedData = JSON.parse(bracedJson);
             } catch (braceError) {
+              // Tier 4: Attempt regex-based trailing comma fixer
               try {
-                // simple regex to remove trailing comma before } or ]
                 const fixedJson = bracedJson.replace(/,(\s*[\]}])/g, '$1');
                 parsedData = JSON.parse(fixedJson);
               } catch (trailingError) {
-                console.error("JSON parsing absolutely failed:");
-                console.error("Raw text received:", rawText);
-                throw new Error("Could not parse JSON response from raw text: " + rawText);
+                // Tier 5: Truncated JSON recovery
+                try {
+                  const repairedJson = repairTruncatedJSON(bracedJson);
+                  const fixedRepaired = repairedJson.replace(/,(\s*[\]}])/g, '$1');
+                  parsedData = JSON.parse(fixedRepaired);
+                } catch (repairError) {
+                  console.warn("Parsing failed on standard layers, moving to extractors.");
+                }
               }
             }
-          } else {
-            console.error("JSON boundaries not found in:", rawText);
-            throw new Error("Could not locate any valid JSON boundaries in: " + rawText);
           }
+        }
+      }
+
+      // Tier 6: Object-level Regex Regexp match extractor fallback (the ultimate defense)
+      if (!parsedData || !parsedData.headlines || !Array.isArray(parsedData.headlines) || parsedData.headlines.length === 0) {
+        const matches = rawText.match(/\{[^{}]*\}/g);
+        if (matches) {
+          const extractedList: Headline[] = [];
+          for (const m of matches) {
+            try {
+              let itemStr = m.trim().replace(/,(\s*[\]}])/g, '$1');
+              const item = JSON.parse(itemStr);
+              if (item && typeof item.text === 'string' && typeof item.cat === 'string') {
+                extractedList.push({
+                  cat: item.cat as any,
+                  text: item.text,
+                  ts: item.ts || null
+                });
+              }
+            } catch (itemErr) {
+              // Simple key-value regex extractor on sub-object if single quotes or truncated
+              const catMatch = m.match(/"cat"\s*:\s*"([^"]+)"/);
+              const textMatch = m.match(/"text"\s*:\s*"([^"]+)"/);
+              const tsMatch = m.match(/"ts"\s*:\s*(?:"([^"]+)"|null)/);
+              if (catMatch && textMatch) {
+                extractedList.push({
+                  cat: catMatch[1] as any,
+                  text: textMatch[1].replace(/\\"/g, '"'),
+                  ts: tsMatch ? (tsMatch[1] || null) : null
+                });
+              }
+            }
+          }
+          if (extractedList.length > 0) {
+            parsedData = { headlines: extractedList };
+          }
+        }
+      }
+
+      // Tier 7: Line-by-line fallback strategy (pure text heuristics format matching)
+      if (!parsedData || !parsedData.headlines || !Array.isArray(parsedData.headlines) || parsedData.headlines.length === 0) {
+        const plainList: Headline[] = [];
+        const lines = rawText.split('\n');
+        for (let line of lines) {
+          line = line.trim();
+          if (!line) continue;
+          
+          let detectedCat: 'hard' | 'quote' | 'warning' | 'political' | 'curiosity' | 'general' = 'general';
+          let found = false;
+          
+          for (const cat of ['hard', 'quote', 'warning', 'political', 'curiosity', 'general'] as const) {
+            if (line.toLowerCase().includes(cat)) {
+              detectedCat = cat;
+              found = true;
+              break;
+            }
+          }
+          
+          let cleanLine = line
+            .replace(/^\d+[\s.)-:\u0980-\u09FF]+/g, '') // remove indices like "1. ", "১." etc
+            .replace(/^[*-]\s*/g, '')
+            .trim();
+            
+          let matchedTs: string | null = null;
+          const tsMatch = cleanLine.match(/(?:\(?\b(\d+:\d+)\b\)?)/);
+          if (tsMatch) {
+            matchedTs = tsMatch[1];
+            cleanLine = cleanLine.replace(tsMatch[0], '').trim();
+          }
+          
+          for (const cat of ['hard', 'quote', 'warning', 'political', 'curiosity', 'general']) {
+            const catReg = new RegExp(`^${cat}\\s*[:—-]\\[*\\]*\\s*`, 'i');
+            cleanLine = cleanLine.replace(catReg, '');
+          }
+          
+          // Filter nonsense characters and JSON structures to avoid garbage headlines
+          if (cleanLine.length > 6 && !cleanLine.startsWith('{') && !cleanLine.startsWith('}') && !cleanLine.includes('headlines')) {
+            plainList.push({
+              cat: detectedCat,
+              text: cleanLine,
+              ts: matchedTs
+            });
+          }
+        }
+        if (plainList.length > 0) {
+          parsedData = { headlines: plainList };
         }
       }
 
@@ -676,6 +872,9 @@ export default function App() {
           showToast('সব শিরোনাম সফলভাবে তৈরি হয়েছে ✓');
         }
 
+        // Play premium notification chime sound
+        playNotificationChime();
+
         setAccumulatedHeadlines(finalAccumulated);
         triggerStreamingRender(outputHeadlines, isRegenerating);
       }, 550);
@@ -700,6 +899,29 @@ export default function App() {
     });
   };
 
+  // Helper: Share logic
+  const handleShare = async (text: string) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'NewsForge AI Headline',
+          text: text
+        });
+        showToast('শেয়ার করা হয়েছে! ✓');
+      } catch (err) {
+        console.warn('Share cancelled or failed:', err);
+      }
+    } else {
+      // Fallback: Copy to clipboard and show toast
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('শেয়ার সাপোর্ট করে না, কপি করা হয়েছে! ✓');
+      }).catch(err => {
+        console.error("Failed to copy text:", err);
+        showToast('শেয়ার করতে ব্যর্থ হয়েছে');
+      });
+    }
+  };
+
   // Reset or Refresh App (Section 5.9)
   const handleRefreshApp = () => {
     setUploadedFile(null);
@@ -708,6 +930,7 @@ export default function App() {
     setAccumulatedHeadlines([]);
     setDisplayedHeadlines([]);
     setIsPlaying(false);
+    setShowFloatingPlayer(false);
     setCurrentTime(0);
     setDuration(0);
     if (audioRef.current) {
@@ -743,6 +966,69 @@ export default function App() {
   return (
     <div className="relative min-h-screen bg-slate-950 text-[#f1f5f9] font-ui overflow-hidden flex flex-col w-full z-10 transition-all duration-300">
       
+      {/* ── FLOATING TOP AUDIO CONTROLLER BAR ── */}
+      {uploadedFile && showFloatingPlayer && (
+        <div className="fixed top-0 left-0 right-0 z-[60] bg-[#070b19]/95 border-b border-[#e53e3e]/40 shadow-[0_4px_30px_rgba(229,62,62,0.25)] backdrop-blur-md py-3 px-4 sm:px-6 flex flex-col md:flex-row md:items-center justify-between gap-3 animate-slide-down">
+          {/* Left panel: File Title & Playback Pulse indicator */}
+          <div className="flex items-center gap-3 min-w-0 max-w-full md:max-w-[40%]">
+            <div className={`w-3.5 h-3.5 rounded-full shrink-0 flex items-center justify-center transition-all ${isPlaying ? 'bg-[#e53e3e] shadow-[0_0_10px_#e53e3e]' : 'bg-white/10'}`}>
+              <div className={`w-1.5 h-1.5 rounded-full bg-white ${isPlaying ? 'animate-ping' : ''}`} />
+            </div>
+            
+            <div className="flex flex-col min-w-0">
+              <span className="text-[9px] text-[#94a3b8] font-bold uppercase tracking-wider font-ui leading-none mb-0.5">অডিও কন্ট্রোলার (Top Dock)</span>
+              <span className="text-xs text-white font-medium truncate select-text leading-tight" title={uploadedFile.name}>
+                {uploadedFile.name}
+              </span>
+            </div>
+          </div>
+
+          {/* Center panel: Playback buttons + scrubber range list + current timers */}
+          <div className="flex-grow flex items-center gap-4 bg-black/45 border border-white/5 rounded-lg px-4 py-1.5 justify-between">
+            {/* Play/Pause On-Off toggle */}
+            <button
+              onClick={togglePlay}
+              className="w-8 h-8 rounded-full bg-[#e53e3e] text-white flex items-center justify-center cursor-pointer transition-all hover:bg-red-600 hover:scale-105 active:scale-95 shrink-0 shadow-[0_2px_8px_rgba(229,62,62,0.25)]"
+              title={isPlaying ? "মিউট করুন / Pause" : "চালু করুন / Play"}
+            >
+              {isPlaying ? (
+                <Pause className="w-3.5 h-3.5 fill-white" />
+              ) : (
+                <Play className="w-3.5 h-3.5 fill-white ml-0.5" />
+              )}
+            </button>
+
+            {/* Compact timeline bar */}
+            <div className="flex-grow flex items-center gap-2.5">
+              <span className="text-[10px] text-[#94a3b8] font-mono select-none">
+                {formatTime(currentTime)}
+              </span>
+              <input
+                type="range"
+                min={0}
+                max={duration || 100}
+                value={currentTime}
+                onChange={handleSeek}
+                className="flex-grow h-1 bg-white/15 rounded-lg appearance-none cursor-pointer accent-[#e53e3e] focus:outline-none"
+              />
+              <span className="text-[10px] text-[#94a3b8] font-mono select-none">
+                {formatTime(duration)}
+              </span>
+            </div>
+          </div>
+
+          {/* Right panel: Close/Dismiss Buttons */}
+          <div className="flex items-center gap-2 shrink-0 justify-end">
+            <button
+              onClick={() => setShowFloatingPlayer(false)}
+              className="text-[#94a3b8] hover:text-[#e53e3e] px-3.5 py-1.5 rounded border border-white/10 hover:border-[#e53e3e]/40 text-[11px] font-semibold cursor-pointer select-none transition-all hover:bg-[rgba(229,62,62,0.04)]"
+            >
+              লুকান (Hide Player)
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── TICKER BAR (From Mockup) ── */}
       <div className="ticker h-8 bg-[rgba(229,62,62,0.06)] border-t border-[rgba(229,62,62,0.15)] border-b border-[rgba(229,62,62,0.15)] overflow-hidden flex items-center select-none w-full relative z-20">
         <div className="ticker-label bg-[#e53e3e] text-white font-logo text-[10px] font-black px-3.5 h-full flex items-center shrink-0 tracking-[1.5px] z-20">
@@ -1420,13 +1706,23 @@ export default function App() {
                                 </button>
                               )}
 
-                              <button
-                                onClick={() => handleCopy(headline.text, uniqueId)}
-                                className={`copy-btn ml-auto inline-flex items-center gap-1.5 text-xs text-[#94a3b8] hover:text-[#e53e3e] cursor-pointer outline-none transition-colors font-ui`}
-                              >
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" strokeWidth="2"/></svg>
-                                <span>{copiedId === uniqueId ? 'কপি হয়েছে ✓' : 'কপি'}</span>
-                              </button>
+                              <div className="ml-auto flex items-center gap-3">
+                                <button
+                                  onClick={() => handleShare(headline.text)}
+                                  className="share-btn inline-flex items-center gap-1.5 text-xs text-[#94a3b8] hover:text-[#e53e3e] cursor-pointer outline-none transition-colors font-ui"
+                                  title="শেয়ার করুন"
+                                >
+                                  <Share2 className="w-3.5 h-3.5" />
+                                  <span>শেয়ার</span>
+                                </button>
+                                <button
+                                  onClick={() => handleCopy(headline.text, uniqueId)}
+                                  className={`copy-btn inline-flex items-center gap-1.5 text-xs text-[#94a3b8] hover:text-[#e53e3e] cursor-pointer outline-none transition-colors font-ui`}
+                                >
+                                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" strokeWidth="2"/></svg>
+                                  <span>{copiedId === uniqueId ? 'কপি হয়েছে ✓' : 'কপি'}</span>
+                                </button>
+                              </div>
                             </div>
                           </div>
                         );
@@ -1470,13 +1766,23 @@ export default function App() {
                             GENERAL
                           </span>
 
-                          <button
-                            onClick={() => handleCopy(headline.text, uniqueId)}
-                            className={`copy-btn ml-auto inline-flex items-center gap-1.5 text-xs text-[#94a3b8] hover:text-[#e53e3e] cursor-pointer outline-none transition-colors font-ui`}
-                          >
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" strokeWidth="2"/></svg>
-                            <span>{copiedId === uniqueId ? 'কপি হয়েছে ✓' : 'কপি'}</span>
-                          </button>
+                          <div className="ml-auto flex items-center gap-3">
+                            <button
+                              onClick={() => handleShare(headline.text)}
+                              className="share-btn inline-flex items-center gap-1.5 text-xs text-[#94a3b8] hover:text-[#e53e3e] cursor-pointer outline-none transition-colors font-ui"
+                              title="শেয়ার করুন"
+                            >
+                              <Share2 className="w-3.5 h-3.5" />
+                              <span>শেয়ার</span>
+                            </button>
+                            <button
+                              onClick={() => handleCopy(headline.text, uniqueId)}
+                              className={`copy-btn inline-flex items-center gap-1.5 text-xs text-[#94a3b8] hover:text-[#e53e3e] cursor-pointer outline-none transition-colors font-ui`}
+                            >
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" strokeWidth="2"/></svg>
+                              <span>{copiedId === uniqueId ? 'কপি হয়েছে ✓' : 'কপি'}</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
