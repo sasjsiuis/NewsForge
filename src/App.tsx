@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SYSTEM_API_KEYS, getSavedRotatorIndex, saveRotatorIndex } from './apiKeys';
+import { extractAudioFromMp4, isMp4File } from './utils/mp4Demuxer';
 const logoImg = "/logo01.jpg";
 import { 
   Key, 
@@ -18,7 +19,10 @@ import {
   AlertCircle, 
   Sparkles,
   ExternalLink,
-  Share2
+  Share2,
+  X,
+  ShieldCheck,
+  BookOpen
 } from 'lucide-react';
 
 // Type definitions
@@ -182,11 +186,14 @@ export default function App() {
   const [apiKey, setApiKey] = useState<string>('');
   const [tempApiKey, setTempApiKey] = useState<string>('');
   const [showKeyInput, setShowKeyInput] = useState<boolean>(false);
+  const [infoModalTab, setInfoModalTab] = useState<'privacy' | 'support' | null>(null);
 
   // File loading state
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [imgFailed, setImgFailed] = useState<boolean>(false);
+  const [isExtractingAudio, setIsExtractingAudio] = useState<boolean>(false);
+  const [extractionProgress, setExtractionProgress] = useState<number>(0);
 
   // Audio player state
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -325,17 +332,45 @@ export default function App() {
     showToast('API Key মুছে ফেলা হয়েছে');
   };
 
-  // Helper: File constraint auditor
-  const processSelectedFile = (file: File) => {
-    const MAX_SIZE = 1 * 1024 * 1024 * 1024; // 1 GB in bytes
-    if (file.size > MAX_SIZE) {
-      showToast('ফাইল সর্বোচ্চ ১ GB হতে পারবে');
-      return;
-    }
-
+  // Helper: File constraint auditor to protect mobile memory and API payload specs
+  const processSelectedFile = async (file: File) => {
     if (!file.type.startsWith('audio/') && !file.type.startsWith('video/')) {
       showToast('শুধুমাত্র অডিও বা ভিডিও ফাইল আপলোড করুন');
       return;
+    }
+
+    const SAFE_MAX_SIZE = 35 * 1024 * 1024; // 35 MB safe limit for client-side processing
+    
+    if (file.size > SAFE_MAX_SIZE) {
+      if (isMp4File(file)) {
+        setIsExtractingAudio(true);
+        setExtractionProgress(0);
+        showToast('⏱ বিশাল ভিডিও ফাইল সনাক্ত হয়েছে! র্যাম নিরাপদ রাখতে অফলাইনে অডিও আলাদা করা হচ্ছে...');
+        try {
+          const audioBlob = await extractAudioFromMp4(file, (progress) => {
+            setExtractionProgress(progress);
+          });
+          
+          const audioFileName = file.name.replace(/\.[^/.]+$/, "") + "_soundtrack.aac";
+          const extractedFile = new File([audioBlob], audioFileName, { type: 'audio/aac' });
+          
+          setUploadedFile(extractedFile);
+          setAccumulatedHeadlines([]);
+          setDisplayedHeadlines([]);
+          showToast('সাউন্ডট্র্যাক আলাদা করা সম্পন্ন হয়েছে! ৩৫ এমবির নিচে হালকা অডিও লোড করা হয়েছে ✓');
+        } catch (error: any) {
+          console.error("Extraction error:", error);
+          showToast(error?.message || 'অডিও নিষ্কাশন ব্যর্থ হয়েছে। স্ট্যান্ডার্ড MP4 ফাইল ব্যবহার করুন।');
+        } finally {
+          setIsExtractingAudio(false);
+          setExtractionProgress(0);
+        }
+        return;
+      } else {
+        const errorMsg = 'মোবাইল ব্রাউজার নিরাপদ রাখতে সর্বোচ্চ ৩৫ MB সাইজের ফাইল দিন। ১-২ জিবির বিশাল ফাইলের ক্ষেত্রে শুধুমাত্র .mp4 ভিডিও অডিও নিষ্কাশন সাপোর্ট করে।';
+        showToast(errorMsg);
+        return;
+      }
     }
 
     setUploadedFile(file);
@@ -1074,28 +1109,30 @@ export default function App() {
       <main className="max-w-[860px] mx-auto px-4 sm:px-6 py-4 pb-24 z-10 relative w-full">
         {/* Sleek top API management pill */}
         <div className="flex justify-end mb-4">
-          <div className="inline-flex items-center gap-2 bg-[rgba(229,62,62,0.06)] border border-[rgba(229,62,62,0.15)] py-1 px-3.5 rounded-full shadow-md text-[11px]">
+          <div className="inline-flex items-center gap-2 bg-black/40 border border-white/10 py-1.5 px-3 rounded-full shadow-md text-[11px] font-ui">
             {keySource === 'rotator' ? (
               <>
-                <span className="w-2 h-2 rounded-full bg-[#e53e3e] animate-pulse"></span>
-                <span className="text-[#e53e3e]/90 font-ui font-bold uppercase tracking-wider">সিস্টেম কী রোটেটর সক্রিয় (৮১টি সচল কী)</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span className="text-emerald-400 font-bold uppercase tracking-wider text-[10px]">সিস্টেম এপিআই সক্রিয়</span>
               </>
             ) : apiKey ? (
               <>
                 <span className="w-2 h-2 rounded-full bg-[#3b82f6] animate-pulse"></span>
-                <span className="text-[#3b82f6] font-ui font-bold uppercase tracking-wider">আমার নিজস্ব API Key সংরক্ষিত</span>
+                <span className="text-[#3b82f6] font-bold uppercase tracking-wider text-[10px]">নিজস্ব এপিআই কী সক্রিয়</span>
               </>
             ) : (
               <>
-                <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-ping"></span>
-                <span className="text-red-400 font-ui font-bold uppercase tracking-wider">নিজস্ব কী দেওয়া নেই ⚠</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                <span className="text-amber-400 font-bold uppercase tracking-wider text-[10px]">নিজস্ব এপিআই যুক্ত নেই</span>
               </>
             )}
             <button
               onClick={() => setShowKeyInput(!showKeyInput)}
-              className="text-[#94a3b8] hover:text-[#e53e3e] font-ui font-bold hover:underline select-none outline-none cursor-pointer ml-1.5 border-l border-white/10 pl-2 transition-all"
+              className="bg-[#e53e3e] hover:bg-red-600 text-white font-mono font-extrabold px-2.5 py-0.5 rounded-full text-[10px] tracking-wider transition-all select-none outline-none cursor-pointer duration-200 uppercase flex items-center gap-1 shrink-0 ml-1.5 shadow-[0_2px_8px_rgba(229,62,62,0.3)] hover:scale-105 active:scale-95"
+              title="Add Custom Gemini API Key"
             >
-              {showKeyInput ? 'লুকান' : 'পছন্দ করুন'}
+              <Key className="w-3 h-3" />
+              <span>ADD API</span>
             </button>
           </div>
         </div>
@@ -1122,8 +1159,8 @@ export default function App() {
               </div>
             </div>
           </div>
-          <div className="logo-sub font-bangla text-[13.5px] text-[#94a3b8] tracking-[1.2px] mt-1.5 select-text font-medium">
-            AI-চালিত সংবাদ শিরোনাম বিশেষজ্ঞ • Advanced AI Headline Architect
+          <div className="logo-sub font-bangla text-xs text-[#94a3b8] mt-1.5 select-text font-medium">
+            সংবাদ শিরোনাম জেনারেটর (AI Headline Generator)
           </div>
         </header>
 
@@ -1142,7 +1179,7 @@ export default function App() {
             <div className="flex items-center justify-between mb-4 text-[#e53e3e]">
               <div className="flex items-center gap-3">
                 <Key className="w-5 h-5" />
-                <h2 className="font-ui text-base sm:text-lg font-bold uppercase tracking-wider">এপিআই কী কন্ট্রোল সেটিংস</h2>
+                <h2 className="font-ui text-base font-bold uppercase tracking-wider">এপিআই কী সেটিংস</h2>
               </div>
               <button 
                 onClick={() => setShowKeyInput(false)}
@@ -1159,7 +1196,7 @@ export default function App() {
                 onClick={() => {
                   setKeySource('rotator');
                   localStorage.setItem('gemini_key_source', 'rotator');
-                  showToast('স্বয়ংক্রিয় সিস্টেম কী রোটেটর সক্রিয় হয়েছে');
+                  showToast('সিস্টেম কী স্বয়ংক্রিয়ভাবে সক্রিয় হয়েছে');
                 }}
                 className={`border p-4 rounded-lg cursor-pointer transition-all ${
                   keySource === 'rotator' 
@@ -1168,7 +1205,7 @@ export default function App() {
                 }`}
               >
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[11px] bg-[#e53e3e] text-white px-2 py-0.5 rounded font-logo uppercase font-black tracking-wider shadow">RECOMMENDED</span>
+                  <span className="text-[11px] bg-[#e53e3e] text-white px-2 py-0.5 rounded font-logo uppercase font-black tracking-wider shadow">SYSTEM FREE API</span>
                   <input 
                     type="radio" 
                     checked={keySource === 'rotator'} 
@@ -1176,9 +1213,9 @@ export default function App() {
                     className="accent-[#e53e3e] pointer-events-none"
                   />
                 </div>
-                <h3 className="text-white font-ui font-bold text-sm mb-1">এআই কী রোটেটর (ফ্রি)</h3>
+                <h3 className="text-white font-ui font-bold text-sm mb-1">এআই কী রোটেটর</h3>
                 <p className="text-[11px] text-[#94a3b8] leading-relaxed">
-                  ৮১টি প্রি-কনফিগার করা সিস্টেম কী পুল। কোনো লিমিট আসলে অটোমেটিক পরবর্তী কী-তে পরিবর্তিত হয়ে রিট্রাই করে। আপনার কোনো কী লাগবে না।
+                  সিস্টেমের ফ্রি এপিআই কী পুল ব্যবহার করুন (কোনো কী লাগবে না)
                 </p>
               </div>
 
@@ -1206,7 +1243,7 @@ export default function App() {
                 </div>
                 <h3 className="text-white font-ui font-bold text-sm mb-1">আমার নিজস্ব API Key</h3>
                 <p className="text-[11px] text-[#94a3b8] leading-relaxed">
-                  আপনার গুগল এআই স্টুডিও একাউন্ট থেকে আনা ফ্রি Gemini API Key ব্যবহার করে আনলিমিটেড সার্ভিস নিন। এটি ব্রাউজারেই সেভ থাকে।
+                  আপনার নিজস্ব ফ্রি Gemini API Key ব্যবহার করুন (ব্রাউজারে সেভ থাকে)
                 </p>
               </div>
             </div>
@@ -1215,7 +1252,7 @@ export default function App() {
             {keySource === 'custom' && (
               <div className="mb-4 bg-black/50 border border-[#3b82f6]/25 rounded-lg p-4 animate-[slideInCard_0.15s_ease_forwards]">
                 <p className="text-xs text-[#6297ae] mb-2.5 font-ui leading-relaxed">
-                  আপনার Gemini API Key নিচে দিন। এটি ব্রাউজারের <span className="text-[#3b82f6]">localStorage</span>-এ নিরাপদে স্টোর থাকবে।
+                  নিছে আপনার Gemini API Key দিয়ে সেভ করুন:
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <input
@@ -1248,14 +1285,14 @@ export default function App() {
             {/* Shared Model settings footer */}
             <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-white/5 pt-3">
               <div className="text-[11px] text-[#94a3b8] font-ui flex items-center gap-1.5 flex-wrap">
-                <span>* নির্ধারিত মডেল:</span>
+                <span>মডেল:</span>
                 <select
                   value={selectedModel}
                   onChange={(e) => setSelectedModel(e.target.value)}
                   className="bg-black/80 border border-white/10 rounded px-2.5 py-1.5 focus:outline-none text-[#e53e3e] font-mono text-xs cursor-pointer"
                 >
                   <option value="gemini-3.5-flash">gemini-3.5-flash (সুপার ফাস্ট)</option>
-                  <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview (উন্নত প্রসেসিং)</option>
+                  <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview (উন্নত প্রсеসিং)</option>
                 </select>
               </div>
               <a 
@@ -1264,7 +1301,7 @@ export default function App() {
                 rel="noreferrer"
                 className="text-[11px] text-[#e53e3e] hover:underline flex items-center gap-1 font-ui"
               >
-                <span>ফ্রি কী তৈরি করুন (Google AI Studio)</span>
+                <span>ফ্রি কী তৈরি করুন</span>
                 <ExternalLink className="w-2.5 h-2.5" />
               </a>
             </div>
@@ -1345,8 +1382,8 @@ export default function App() {
                     <line x1="12" y1="3" x2="12" y2="15" stroke="#94a3b8" strokeWidth="1.5"/>
                   </svg>
                 </div>
-                <div className="upload-title font-bangla text-base text-white mb-1.5 font-medium">অডিও বা ভিডিও ফাইল আপলোড করুন</div>
-                <div className="upload-hint text-xs text-[#94a3b8] font-ui">MP3, MP4, WAV, M4A, OGG সাপোর্টেড • সর্বোচ্চ ১ GB</div>
+                <div className="upload-title font-bangla text-sm text-white mb-1.5 font-semibold">অডিও বা ভিডিও ফাইল আপলোড করুন</div>
+                <div className="upload-hint text-[10px] text-[#94a3b8]/80 font-ui">MP3, MP4, WAV, M4A, OGG • বড় ভিডিও (সর্বোচ্চ ২ GB MP4) অফলাইন অডিও ডিকোড মোড সাপোর্টেড</div>
               </div>
             ) : (
               <div className="file-info flex bg-[rgba(229,62,62,0.06)] border border-[rgba(229,62,62,0.15)] rounded-lg p-3.5 px-4 mb-4 items-center gap-3 animate-[slideInCard_0.2s_ease_forwards]">
@@ -1440,19 +1477,8 @@ export default function App() {
           </>
         ) : (
           <div className="bg-[rgba(5,13,16,0.6)] border border-[rgba(229,62,62,0.15)] rounded-xl p-5 mb-5 relative z-10 animate-[slideInCard_0.2s_ease_forwards] shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
-            <div className="flex items-center gap-3.5 mb-3 text-[#e53e3e]">
-              <div className="p-2 bg-[rgba(229,62,62,0.06)] rounded border border-[rgba(229,62,62,0.12)]">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <polyline points="14 2 14 8 20 8"/>
-                  <line x1="16" y1="13" x2="8" y2="13"/>
-                  <line x1="16" y1="17" x2="8" y2="17"/>
-                </svg>
-              </div>
-              <div>
-                <p className="font-ui text-sm font-bold text-white leading-tight">আপনার সংবাদের বিবরণ বা লেখার কপি এখানে পেস্ট করুন</p>
-                <p className="text-[10px] text-[#94a3b8] mt-0.5 font-ui">সম্পূর্ণ সংবাদ নিবন্ধ বা স্ক্রিপ্ট পেস্ট করুন। AI এটি নিখুঁতভাবে বিশ্লেষণ করে সংবাদ শিরোনাম তৈরি করবে।</p>
-              </div>
+            <div className="mb-3">
+              <p className="font-ui text-xs font-bold text-white/95">সংবাদ বা স্ক্রিপ্ট এখানে পেস্ট করুন</p>
             </div>
             
             <textarea
@@ -1486,16 +1512,16 @@ export default function App() {
           <div className="bg-[rgba(5,13,16,0.6)] border border-[rgba(229,62,62,0.15)] rounded-xl p-5 mb-6 relative z-10 animate-[slideInCard_0.2s_ease_forwards]">
             
             {/* Optional Speaker Name Input Field */}
-            <div className="mb-5 border-b border-white/5 pb-5">
+            <div className="mb-4 border-b border-white/5 pb-4">
               <label className="block text-xs font-semibold text-[#e53e3e] uppercase tracking-wider mb-2 font-ui">
-                বক্তার নাম, পদবি বা প্রধান ব্যক্তি (ঐচ্ছিক) / Speaker/Author Name (Optional)
+                বক্তার নাম বা পদবি (ঐচ্ছিক)
               </label>
               <div className="relative">
                 <input
                   type="text"
                   value={speakerName}
                   onChange={(e) => setSpeakerName(e.target.value)}
-                  placeholder="যেমন: খন্দকার মুক্তাদির, পরিকল্পনামন্ত্রী, ওবায়দুল কাদের ইত্যাদি..."
+                  placeholder="যেমন: ওবায়দুল কাদের, পরিকল্পনামন্ত্রী ইত্যাদি..."
                   className="w-full bg-black/60 border border-[rgba(229,62,62,0.15)] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#e53e3e] transition-all placeholder:text-white/20 leading-relaxed font-bangla font-medium"
                 />
                 {speakerName && (
@@ -1507,13 +1533,10 @@ export default function App() {
                   </button>
                 )}
               </div>
-              <p className="text-[10px] text-[#94a3b8] mt-1.5 font-ui">
-                * এখানে নাম বা পদবি দিলে এআই (AI) বক্তব্যের উৎস মেলাবে এবং শিরোনামে চমৎকার আশ্বস্তকরণ বিশেষণ (যেমন: 'মন্ত্রীর আশ্বাস' অথবা 'খন্দকার মুক্তাদিরের আশ্বস্তকরণ') তৈরি করবে।
-              </p>
             </div>
 
-            <h4 className="font-ui text-xs font-semibold text-[#e53e3e] uppercase tracking-wider mb-4 text-center select-none">
-              {inputMode === 'media' ? "এআই অ্যানালিটিক্স ভিডিও মোড সিলেক্ট করুন" : "এআই অ্যানালিটিক্স টেক্সট মোড সিলেক্ট করুন"}
+            <h4 className="font-ui text-xs font-semibold text-[#e53e3e] uppercase tracking-wider mb-3 text-center select-none">
+              বিশ্লেষণ মোড নির্বাচন করুন
             </h4>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1536,10 +1559,10 @@ export default function App() {
                 </div>
                 <div>
                   <p className="font-ui text-sm font-bold text-white leading-tight">
-                    {inputMode === 'media' ? "নিউজ ভিডিও / রাজনৈতিক বক্তব্য" : "সংবাদ ও রাজনৈতিক টেক্সট / আর্টিকেল"}
+                    নিউজ ও রাজনৈতিক অ্যানালিটিক্স
                   </p>
                   <p className="text-[10px] text-[#94a3b8] mt-0.5 font-ui">
-                    {inputMode === 'media' ? "৫টি ক্যাটাগরিতে ৩০টির বেশি পেশাদার সংবাদ শিরোনাম দেবে" : "৫টি ক্যাটাগরিতে ৩০টির বেশি পেশাদার সংবাদ শিরোনাম বিশ্লেষণ করে দেবে"}
+                    পেশাদারসংবাদ ও রাজনৈতিক শিরোনাম বিশ্লেষণ
                   </p>
                 </div>
               </label>
@@ -1563,10 +1586,10 @@ export default function App() {
                 </div>
                 <div>
                   <p className="font-ui text-sm font-bold text-white leading-tight">
-                    {inputMode === 'media' ? "সাধারণ ভিডিও / অন্যান্য কন্টেন্ট" : "সাধারণ লেখা / অন্যান্য প্রবন্ধ নিবন্ধ"}
+                    সাধারণ কন্টেন্ট ও বক্তব্য
                   </p>
                   <p className="text-[10px] text-[#94a3b8] mt-0.5 font-ui">
-                    {inputMode === 'media' ? "সোশ্যাল মিডিয়া ক্যাপশন ও ১০-১৫টি মৌলিক বাংলা শিরোনাম দেবে" : "সোশ্যাল মিডিয়া ক্যাপশন ও ১০-১৫টি মৌলিক বাংলা শিরোনাম বিশ্লেষণ করে দেবে"}
+                    মৌলিক সাধারণ শিরোনাম ও ক্যাপশন জেনারেটর
                   </p>
                 </div>
               </label>
@@ -1609,6 +1632,34 @@ export default function App() {
         )}
 
         {/* STATUS SCREEN COMPONENT OVERLAYS */}
+        {isExtractingAudio && (
+          <div className="mt-6 relative z-10 animate-[slideInCard_0.2s_ease_forwards]">
+            {/* Status Bar */}
+            <div className="flex bg-[rgba(5,13,16,0.8)] border border-[rgba(229,62,62,0.15)] rounded-lg p-3.5 px-4 mb-2.5 items-center gap-3">
+              <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shrink-0"></div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bangla text-xs sm:text-sm text-amber-500 font-bold truncate">ফাইল প্রক্রিয়াকরণ চলছে...</p>
+                <p className="text-[10px] text-[#94a3b8] font-ui leading-none mt-1">আপনার র্যাম (RAM) সুরক্ষিত রেখে বিশাল ভিডিও থেকে অডিও সাউন্ড ট্র্যাক আলাদা করা হচ্ছে</p>
+              </div>
+              <span className="font-logo text-[10px] bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded text-amber-500 shrink-0 font-bold uppercase transition-all">
+                RAM SAFE DEMUX
+              </span>
+            </div>
+
+            {/* Stream Progress Fill */}
+            <div className="h-1 bg-[rgba(229,62,62,0.05)] rounded overflow-hidden shadow-[0_2px_8px_rgba(229,62,62,0.1)]">
+              <div 
+                className="bg-amber-500 h-full transition-all duration-300 shadow-[0_0_8px_rgba(245,158,11,0.5)]"
+                style={{ width: `${extractionProgress}%` }}
+              />
+            </div>
+            <div className="flex justify-between items-center mt-1.5 font-logo text-[10px] text-[#94a3b8] uppercase font-semibold">
+              <span className="font-bangla tracking-wide text-[9px] text-[#94a3b8]/80">অফলাইন ডিকোড প্রসেস</span>
+              <span>{extractionProgress}% EXTRACTED</span>
+            </div>
+          </div>
+        )}
+
         {isAnalyzing && (
           <div className="mt-6 relative z-10">
             {/* Status Bar */}
@@ -1794,6 +1845,184 @@ export default function App() {
         )}
       </main>
 
+      {/* Privacy & Support Modal Overlay */}
+      {infoModalTab && (
+        <div 
+          className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto animate-[fadeIn_0.2s_ease_out]"
+          onClick={() => setInfoModalTab(null)}
+        >
+          <div 
+            className="bg-[#050d10] border border-[rgba(229,62,62,0.25)] rounded-2xl w-full max-w-2xl overflow-hidden shadow-[0_10px_50px_rgba(0,0,0,0.85)] relative animate-[scaleUp_0.2s_ease_out]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-5 border-b border-white/5 bg-black/30">
+              <div className="flex items-center gap-2.5">
+                {infoModalTab === 'privacy' ? (
+                  <ShieldCheck className="w-5 h-5 text-[#e53e3e]" />
+                ) : (
+                  <BookOpen className="w-5 h-5 text-[#e53e3e]" />
+                )}
+                <h3 className="font-bangla text-base sm:text-lg font-bold text-white">
+                  {infoModalTab === 'privacy' ? 'প্রাইভেসি ও ডেটা নিরাপত্তা পলিসি' : 'ব্যবহার নির্দেশিকা এবং সাপোর্ট ডেস্ক'}
+                </h3>
+              </div>
+              <button 
+                onClick={() => setInfoModalTab(null)}
+                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[#94a3b8] hover:text-white transition-all outline-none cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Navigation Tabs */}
+            <div className="flex border-b border-white/5 bg-black/20 select-none">
+              <button
+                onClick={() => setInfoModalTab('support')}
+                className={`flex-1 py-3 text-center text-xs font-semibold uppercase tracking-wider font-ui border-b-2 transition-all cursor-pointer ${
+                  infoModalTab === 'support' 
+                    ? 'border-[#e53e3e] text-white bg-white/[0.02]' 
+                    : 'border-transparent text-[#94a3b8] hover:text-white'
+                }`}
+              >
+                ব্যবহার ও সাপোর্ট (Support Guide)
+              </button>
+              <button
+                onClick={() => setInfoModalTab('privacy')}
+                className={`flex-1 py-3 text-center text-xs font-semibold uppercase tracking-wider font-ui border-b-2 transition-all cursor-pointer ${
+                  infoModalTab === 'privacy' 
+                    ? 'border-[#e53e3e] text-white bg-white/[0.02]' 
+                    : 'border-transparent text-[#94a3b8] hover:text-white'
+                }`}
+              >
+                প্রাইভেসি পলিসি (Privacy & Trust)
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar select-text">
+              {infoModalTab === 'support' ? (
+                <div className="space-y-5">
+                  {/* About the Site */}
+                  <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                    <h4 className="font-bangla text-sm text-[#e53e3e] font-bold mb-1.5">১. এই সাইটটি কি এবং লক্ষ্য কি?</h4>
+                    <p className="font-bangla text-xs text-[#94a3b8] leading-relaxed">
+                      এটি একটি এআই-চালিত বাংলা সংবাদ ও অডিও/ভিডিও কন্টেন্ট অ্যানালাইজার। এর মূল কাজ হলো রাজনৈতিক বক্তব্য, সংবাদ বুলেটিন ও বিভিন্ন প্রবন্ধ বিশ্লেষণ করে প্রফেশনাল সংবাদ শিরোনাম তৈরি করা, যাতে সাংবাদিকদের বা সোশ্যাল ওয়াচারদের সময় বাঁচে।
+                    </p>
+                  </div>
+
+                  {/* How to use */}
+                  <div className="border-l-2 border-amber-500 bg-amber-500/5 px-4 py-3 rounded-r-xl">
+                    <h4 className="font-bangla text-xs sm:text-sm text-amber-500 font-bold mb-1">২. সাইটটি যেভাবে চমৎকার কাজ করে:</h4>
+                    <ul className="list-disc list-inside font-bangla text-xs text-[#94a3b8] space-y-1.5 mt-2 leading-relaxed">
+                      <li><strong className="text-white">টেক্সট বা স্ক্রিপ্ট মোড:</strong> যেকোনো খবরের কপি পেস্ট করুন, এআই সেকেন্ডে নির্ভুল শিরোনাম বানিয়ে দেবে।</li>
+                      <li><strong className="text-white">অডিও বা বড় ভিডিও ফাইল:</strong> আমাদের সাইটে ১-২ জিবির বিশাল ভিডিও দিলেও সমস্যা হবে না! আমরা ক্লায়েন্ট মেমোরিতে (RAM) কোনো চাপ না ফেলে সেকেন্ডের মধ্যে ভিডিওর ভেতর থেকে উচ্চমানের লাইটওয়েট <strong className="text-white">AAC অডিও জেনারেট</strong> করি। এরপর সেই হালকা ট্র্যাকটি দিয়ে খুব দ্রুত কাজ সম্পন্ন হয়।</li>
+                    </ul>
+                  </div>
+
+                  {/* Troubleshooting steps */}
+                  <div className="bg-white/[0.01] border border-white/5 rounded-xl p-4 space-y-4">
+                    <div className="flex items-center gap-2 text-[#e53e3e] border-b border-white/5 pb-2 mb-2">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <h4 className="font-bangla text-xs sm:text-sm font-bold">৩. শিরোনাম জেনারেট করতে ব্যর্থ হলে বা Error দেখা দিলে করণীয়</h4>
+                    </div>
+                    
+                    <div className="space-y-3 font-bangla text-xs">
+                      {/* Step 1 */}
+                      <div>
+                        <span className="inline-block bg-[#e53e3e]/10 text-[#e53e3e] font-logo text-[10px] uppercase font-bold px-2 py-0.5 rounded mr-2">১ম কাজ (First Fix)</span>
+                        <p className="text-[#94a3b8] mt-1 leading-relaxed">
+                          আপনার internet সংযোগ ঠিক আছে কি না নিশ্চিত করুন এবং পেজের মূল **"Generate (অনুবাদ ও শিরোনাম তৈরি করুন)"** বাটনে পুনরায় ক্লিক করুন। কিছু সময় এপিআই থ্রোটলিং-এর কারণে প্রসেসিং সামান্য বিলম্বিত বা ক্ষণিক ব্যর্থ হতে পারে।
+                        </p>
+                      </div>
+
+                      {/* Step 2 */}
+                      <div>
+                        <span className="inline-block bg-amber-500/10 text-amber-500 font-logo text-[10px] uppercase font-bold px-2 py-0.5 rounded mr-2">২য় কাজ (Second Fix)</span>
+                        <p className="text-[#94a3b8] mt-1 leading-relaxed">
+                          যদি পূর্বের পদ্ধতিতে কাজ না হয়, তবে আমাদের স্ক্রিনের একদম উপরে থাকা **"মডেল নির্বাচন (Select AI Model)"** অপশন থেকে মডেলটি পরিবর্তন করে দিন (যেমন: **Gemini 3.5 Flash** এর বদলে **Gemini 1.5 Pro** বেছে নিন)। 
+                          আপনার যদি পার্সোনাল API Key থাকে, তবে সেটি ইনপুট দিতে পারেন কারণ মাঝে মাঝে ফ্রি এপিআই লিমিট শেষ হতে পারে।
+                        </p>
+                      </div>
+
+                      {/* Step 3 */}
+                      <div>
+                        <span className="inline-block bg-blue-500/10 text-blue-500 font-logo text-[10px] uppercase font-bold px-2 py-0.5 rounded mr-2">৩য় কাজ (Third Fix / Next Step)</span>
+                        <p className="text-[#94a3b8] mt-1 leading-relaxed">
+                          যদি অডিও ফাইলে বেশি নয়েজ বা যান্ত্রিক গোলযোগ থাকে, তবে এআই সরাসরি বুঝতে পারে না। সেক্ষেত্রে আপনি বিকল্প হিসেবে অডিও ট্র্যাকটির মূল সারসংক্ষেপ বা বক্তব্যের টেক্সট অংশটুকু কপি করে আমাদের **"সংবাদ বা স্ক্রিপ্ট এখানে পেস্ট করুন"** বক্সে পেস্ট করে রান করতে পারেন।
+                        </p>
+                      </div>
+
+                      {/* Step 4 */}
+                      <div className="border-t border-white/5 pt-3 mt-3">
+                        <span className="inline-block bg-emerald-500/10 text-emerald-500 font-logo text-[10px] uppercase font-bold px-2 py-0.5 rounded mr-2">পুনরায় শুরু (Reset & Refresh)</span>
+                        <p className="text-[#94a3b8] mt-1 leading-relaxed">
+                          সবশেষে পেজটি একবার রিফ্রেশ (Refresh / F5) দিন। রিফ্রেশ করলে কোনো রিসোর্স বা মেমোরি আটকে থাকলে তা বুস্ট পাবে এবং সাইট পুনরায় স্বাভাবিক সার্ভিস দিতে পারবে।
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Immediate Support */}
+                  <div className="bg-[#e53e3e]/5 border border-[#e53e3e]/15 rounded-xl p-4 text-center">
+                    <p className="font-bangla text-xs text-white/90 mb-1 font-semibold">যেকোনো প্রকার সার্ভিস সাপোর্ট বা পরামর্শের জন্য সরাসরি কথা বলুন</p>
+                    <p className="font-ui text-xs text-[#94a3b8]">২৪/৭ ইমেইল যোগাযোগ: <span className="text-white hover:text-[#e53e3e] transition-colors select-all font-semibold">saiedalmahdi31@gmail.com</span></p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  {/* No Logs or Tracking */}
+                  <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                    <div className="flex items-center gap-2 text-emerald-500 mb-2">
+                      <ShieldCheck className="w-4 h-4" />
+                      <h4 className="font-bangla text-sm font-bold">১. ১০০% সংরক্ষিত অফলাইন প্রসেস (Zero Logs)</h4>
+                    </div>
+                    <p className="font-bangla text-xs text-[#94a3b8] leading-relaxed">
+                      আপনি যখন এই সাইটটি ব্রাউজ করেন এবং কোনো ভিডিও বা অডিও আপলোড অথবা টেক্সট স্ক্রিপ্ট দেন, সেটি সম্পূর্ণ নিরাপদ। আমরা আপনার কোনো ফাইল, ব্যক্তিগত তথ্য, অনুবাদকৃত স্ক্রিপ্ট অথবা অডিও রেকর্ড কোনো ক্লাউড সার্ভার বা ডেটাবেজে জমা রাখি না। ব্রাউজার রিলোড দেওয়ার সাথে সাথে আপনার পূর্ববর্তী সকল ডেটা স্থায়ীভাবে ডিলিট হয়ে যায়।
+                    </p>
+                  </div>
+
+                  {/* Demux Safety limits */}
+                  <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                    <h4 className="font-bangla text-sm text-[#e53e3e] font-bold mb-1.5">২. বিশাল সাইজ ডিকোড নিরাপত্তা (RAM Safe Mode)</h4>
+                    <p className="font-bangla text-xs text-[#94a3b8] leading-relaxed">
+                      মোবাইলের বা পিসির র্যাম (RAM) ক্র্যাশ এড়াতে আমাদের বিশেষায়িত ডক্স ডিকোড ইঞ্জিন ১-২ জিবি সাইজের ফাইলকে ক্লায়েন্ট-সাইডেই এক্সট্র্যাক্ট করে অডিওতে রূপান্তর করে নেয়। ইন্টারনেটে আপলোডের আগে ২ জিবির অপ্রয়োজনীয় ভিডিও ফেলে দিয়ে মাত্র ১০-১৫ মেগাবাইটের হালকা অডিও পাঠানো হয় যাতে কোনো ডাটাসি বা প্রাইভেসি লিক না হতে পারে।
+                    </p>
+                  </div>
+
+                  {/* Google Gemini Compliance */}
+                  <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                    <h4 className="font-bangla text-sm text-blue-500 font-bold mb-1.5">৩. Google API সিকিউরিটি কমপ্লায়েন্স</h4>
+                    <p className="font-bangla text-xs text-[#94a3b8] leading-relaxed">
+                      আমরা গুগলের অফিশিয়াল Gemini Generative AI Platform ব্যবহার করি। এখানে পাঠানো কোনো ডেটা সার্চ ইঞ্জিনে ইন্ডেক্স হয় না এবং এআই মডেল ট্রেইনিং বা বিজ্ঞাপনের উদ্দেশ্যে ব্যবহৃত হয় না। আপনার মেধা ও বুদ্ধিবৃত্তিক অধিকার সম্পূর্ণ আপনার কাছেই সুরক্ষিত থাকে।
+                    </p>
+                  </div>
+
+                  {/* Limitation of Liability */}
+                  <div className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-4">
+                    <h4 className="font-bangla text-xs sm:text-sm text-amber-500 font-bold mb-1.5">৪. সঠিকতার সীমাবদ্ধতা ও ডিসক্লেইমার</h4>
+                    <p className="font-bangla text-xs text-[#94a3b8] leading-relaxed">
+                      এআই দ্বারা জেনারেট করা শিরোনাম চমৎকার হলেও কিছু ক্ষেত্রে এটি রুপক বা বাকচাতুর্যের ব্যবহার করতে পারে। সংবাদ প্রকাশে চূড়ান্ত ব্যবহারের আগে সংবাদের মূল সত্যতার সাথে শিরোনামের যৌক্তিকতা মিলিয়ে নেয়ার জন্য আমরা অনুরোধ করছি।
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-white/5 bg-black/40 flex items-center justify-between">
+              <p className="font-logo text-[10px] text-[#94a3b8]/60 font-semibold uppercase">SECURE VERIFIED CONNECTION • 2026</p>
+              <button
+                onClick={() => setInfoModalTab(null)}
+                className="bg-[#e53e3e] hover:bg-[#e53e3e]/90 text-white font-bangla text-xs px-5 py-2 rounded-lg font-bold shadow-[0_2px_12px_rgba(229,62,62,0.3)] transition-all cursor-pointer"
+              >
+                বন্ধ করুন (Close)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* FOOTER SIGNATURE (From Mockup UI) */}
       <footer className="mt-14 pt-6 pb-8 border-t border-[rgba(229,62,62,0.08)] flex flex-col sm:flex-row items-center justify-between gap-4 text-[#94a3b8] text-xs max-w-[860px] mx-auto w-full px-4 z-20 relative font-ui select-none">
         <div className="flex items-center gap-2">
@@ -1818,10 +2047,10 @@ export default function App() {
           </a>
         </div>
 
-        <div className="flex gap-4 text-[#94a3b8]">
-          <span className="hover:text-white cursor-pointer transition-colors">Support</span>
-          <span className="hover:text-white cursor-pointer transition-colors">Privacy</span>
-          <span className="hover:text-white cursor-pointer transition-colors">Documentation</span>
+        <div className="flex gap-4 text-[#94a3b8] select-none">
+          <span onClick={() => setInfoModalTab('support')} className="hover:text-white cursor-pointer transition-colors">Support</span>
+          <span onClick={() => setInfoModalTab('privacy')} className="hover:text-white cursor-pointer transition-colors">Privacy</span>
+          <span onClick={() => setInfoModalTab('support')} className="hover:text-white cursor-pointer transition-colors">Documentation</span>
         </div>
       </footer>
     </div>
