@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SYSTEM_API_KEYS, getSavedRotatorIndex, saveRotatorIndex } from './apiKeys';
 import { extractAudioFromMp4, isMp4File } from './utils/mp4Demuxer';
+import { compressAudioToWav } from './utils/audioCompressor';
+import { AudioVisualizer } from './components/AudioVisualizer';
 const logoImg = "/logo01.jpg";
 import { 
   Key, 
@@ -519,13 +521,27 @@ export default function App() {
 
       if (inputMode === 'media') {
         // Convert file
-        setProgress(25);
+        let fileToProcess = uploadedFile!;
+        if (uploadedFile!.size > 2 * 1024 * 1024) {
+          setProgress(15);
+          setStatusMessage('মোবাইল ও নেটওয়ার্কের জন্য অডিও কম্প্রেশন করা হচ্ছে...');
+          try {
+            const compressedBlob = await compressAudioToWav(uploadedFile!, 16000, (msg) => {
+              setStatusMessage(`কম্প্রেশন: ${msg}`);
+            });
+            fileToProcess = new File([compressedBlob], `compressed_${uploadedFile!.name.replace(/\.[^/.]+$/, "")}.wav`, { type: 'audio/wav' });
+          } catch (compressErr) {
+            console.error('Audio compression failed, processing original file.', compressErr);
+          }
+        }
+
+        setProgress(35);
         setStatusMessage('বেস-৬৪ অডিও রূপান্তর করা হচ্ছে...');
-        const base64Data = await readFileAsBase64(uploadedFile!);
+        const base64Data = await readFileAsBase64(fileToProcess);
 
         setProgress(45);
         setStatusMessage('এআই ইনস্ট্রাকশন তৈরি করা হচ্ছে...');
-        const mimeType = uploadedFile!.type || 'audio/mp3';
+        const mimeType = fileToProcess.type || 'audio/wav';
         let promptText = videoType === 'news' ? NEWS_MODE_PROMPT : GENERAL_MODE_PROMPT;
 
         if (speakerName.trim()) {
@@ -623,6 +639,32 @@ export default function App() {
 
           const errorVal = response.status;
           console.warn(`API Key index ${rotatorIndexToUse} returned status ${errorVal}`);
+
+          // Extract response error message if available to detect payload size limits
+          let errorText = '';
+          try {
+            errorText = await response.text();
+          } catch (_) {}
+          
+          let parsedErrorMsg = '';
+          try {
+            const parsedObj = JSON.parse(errorText);
+            parsedErrorMsg = parsedObj?.error?.message || '';
+          } catch (_) {}
+
+          const lowerMsg = parsedErrorMsg.toLowerCase();
+          const isSizeError = errorVal === 413 || 
+                              lowerMsg.includes('exceed') || 
+                              lowerMsg.includes('limit') || 
+                              lowerMsg.includes('size') || 
+                              lowerMsg.includes('too large');
+
+          if (isSizeError) {
+            showToast('ফাইলের আকার এপিআই-এর সর্বোচ্চ সীমা (২০MB) অতিক্রম করেছে। অনুগ্রহ করে ছোট বা আরও সংক্ষিপ্ত ফাইল ব্যবহার করুন।');
+            setIsAnalyzing(false);
+            setProgress(0);
+            return;
+          }
 
           if (keySource === 'rotator') {
             attempts++;
@@ -1001,6 +1043,11 @@ export default function App() {
   return (
     <div className="relative min-h-screen bg-slate-950 text-[#f1f5f9] font-ui overflow-hidden flex flex-col w-full z-10 transition-all duration-300">
       
+      {/* Cinematic Ambient Glow Spots */}
+      <div className="absolute top-[8%] left-[-10%] w-[500px] h-[500px] rounded-full bg-red-600/[0.04] blur-[130px] pointer-events-none select-none z-0 animate-pulse" style={{ animationDuration: '8s' }} />
+      <div className="absolute top-[40%] right-[-10%] w-[600px] h-[600px] rounded-full bg-indigo-500/[0.02] blur-[150px] pointer-events-none select-none z-0 animate-pulse" style={{ animationDuration: '12s' }} />
+      <div className="absolute bottom-[10%] left-[15%] w-[450px] h-[450px] rounded-full bg-amber-500/[0.015] blur-[120px] pointer-events-none select-none z-0" />
+      
       {/* ── FLOATING TOP AUDIO CONTROLLER BAR ── */}
       {uploadedFile && showFloatingPlayer && (
         <div className="fixed top-0 left-0 right-0 z-[60] bg-[#070b19]/95 border-b border-[#e53e3e]/40 shadow-[0_4px_30px_rgba(229,62,62,0.25)] backdrop-blur-md py-3 px-4 sm:px-6 flex flex-col md:flex-row md:items-center justify-between gap-3 animate-slide-down">
@@ -1064,34 +1111,7 @@ export default function App() {
         </div>
       )}
 
-      {/* ── TICKER BAR (From Mockup) ── */}
-      <div className="ticker h-8 bg-[rgba(229,62,62,0.06)] border-t border-[rgba(229,62,62,0.15)] border-b border-[rgba(229,62,62,0.15)] overflow-hidden flex items-center select-none w-full relative z-20">
-        <div className="ticker-label bg-[#e53e3e] text-white font-logo text-[10px] font-black px-3.5 h-full flex items-center shrink-0 tracking-[1.5px] z-20">
-          LIVE
-        </div>
-        <div className="ticker-wrap flex overflow-hidden w-full">
-          <div className="ticker-track flex gap-[60px] pl-10">
-            <span className="text-[11px] text-[#94a3b8] font-semibold flex items-center gap-2">
-              NewsForge AI • বাংলাদেশের প্রথম AI নিউজ হেডলাইন জেনারেটর
-            </span>
-            <span className="text-[11px] text-[#94a3b8] font-semibold flex items-center gap-2">
-              অডিও/ভিডিও আপলোড করুন • AI বিশ্লেষণ • ৩০+ শিরোনাম তৈরি
-            </span>
-            <span className="text-[11px] text-[#94a3b8] font-semibold flex items-center gap-2">
-              TV Scroll • Breaking News • Thumbnail Text — সব এক জায়গায়
-            </span>
-            <span className="text-[11px] text-[#94a3b8] font-semibold flex items-center gap-2">
-              NewsForge AI • বাংলাদেশের প্রথম AI নিউজ হেডলাইন জেনারেটর
-            </span>
-            <span className="text-[11px] text-[#94a3b8] font-semibold flex items-center gap-2">
-              অডিও/ভিডিও আপলোড করুন • AI বিশ্লেষণ • ৩০+ শিরোনাম তৈরি
-            </span>
-            <span className="text-[11px] text-[#94a3b8] font-semibold flex items-center gap-2">
-              TV Scroll • Breaking News • Thumbnail Text — সব এক জায়গায়
-            </span>
-          </div>
-        </div>
-      </div>
+
 
       {/* Styled feedback toast overlays */}
       <div className="fixed top-12 right-4 z-50 flex flex-col gap-2 max-w-sm pointer-events-none">
@@ -1362,10 +1382,10 @@ export default function App() {
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 onClick={triggerFileInputClick}
-                className={`upload-zone relative border-2 border-dashed rounded-xl p-9 text-center cursor-pointer select-none transition-all duration-300 ${
+                className={`upload-zone relative border-2 border-dashed rounded-2xl p-11 text-center cursor-pointer select-none overflow-hidden transition-all duration-300 ${
                   isDragging 
-                    ? 'border-[#e53e3e] bg-[rgba(229,62,62,0.06)]' 
-                    : 'border-[rgba(229,62,62,0.15)] bg-[rgba(229,62,62,0.02)] hover:border-[#e53e3e]'
+                    ? 'border-[#e53e3e] bg-[rgba(229,62,62,0.08)] cinematic-glow scan-line' 
+                    : 'border-[rgba(229,62,62,0.15)] bg-black/20 hover:border-[#e53e3e]/45 hover:bg-white/[0.005] shadow-[0_4px_25px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_35px_rgba(229,62,62,0.12)]'
                 }`}
               >
                 <input
@@ -1435,26 +1455,11 @@ export default function App() {
                 </button>
 
                 <div className="waveform-wrap flex-1 min-w-[150px]">
-                  <div className={`waveform-bars flex items-end gap-[2px] h-8 ${isPlaying ? 'playing' : ''}`}>
-                    {Array.from({ length: 32 }).map((_, i) => {
-                      const idleH = Math.floor(Math.sin((i / 31) * Math.PI) * 16 + 8);
-                      const delay = (i * 0.025).toFixed(3);
-                      return (
-                        <div
-                          key={i}
-                          className={`bar flex-1 rounded-[2px] min-h-[3px] transition-all`}
-                          style={{
-                            height: `${idleH}px`,
-                            backgroundColor: isPlaying ? 'var(--neon)' : 'var(--border)',
-                            animationDelay: `${delay}s`,
-                            animationDuration: '0.8s',
-                            animationName: isPlaying ? 'waveAnim' : 'none',
-                            transformOrigin: 'bottom'
-                          } as React.CSSProperties}
-                        />
-                      );
-                    })}
-                  </div>
+                  <AudioVisualizer 
+                    audioElement={audioRef.current} 
+                    isPlaying={isPlaying} 
+                    uploadedFile={uploadedFile} 
+                  />
                 </div>
 
                 <div className="flex items-center gap-3 shrink-0">
@@ -1599,13 +1604,13 @@ export default function App() {
 
         {/* BUTTON ACTION MATRIX */}
         {((inputMode === 'media' && uploadedFile) || (inputMode === 'text' && inputText.trim().length > 0)) && (
-          <div className="flex flex-wrap gap-2.5 mt-6 mb-6 select-none justify-center relative z-10 w-full animate-[slideInCard_0.2s_ease_forwards]">
+          <div className="flex flex-wrap gap-3.5 mt-8 mb-8 select-none justify-center relative z-10 w-full animate-[slideInCard_0.25s_ease_forwards]">
             <button
               onClick={() => generateHeadlines(false)}
               disabled={isAnalyzing}
-              className="inline-flex items-center gap-2 px-5 py-3 rounded bg-[#e53e3e] text-white font-semibold font-ui text-xs tracking-wider transition-all shadow-[0_2px_12px_rgba(229,62,62,0.2)] hover:shadow-[0_4px_16px_rgba(229,62,62,0.35)] cursor-pointer disabled:opacity-40 disabled:pointer-events-none select-none uppercase active:scale-98 font-bold"
+              className="inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl bg-[#e53e3e] text-white font-extrabold font-ui text-xs tracking-widest transition-all duration-300 shadow-[0_4px_20px_rgba(229,62,62,0.25)] hover:shadow-[0_8px_30px_rgba(229,62,62,0.5)] hover:bg-red-600 hover:scale-[1.03] active:scale-[0.97] cursor-pointer disabled:opacity-45 disabled:pointer-events-none select-none uppercase"
             >
-              <Sparkles className="w-3.5 h-3.5 text-white" />
+              <Sparkles className="w-4 h-4 text-white animate-pulse" />
               <span>শিরোনাম তৈরি করুন</span>
             </button>
 
@@ -1613,7 +1618,7 @@ export default function App() {
               <button
                 onClick={() => generateHeadlines(true)}
                 disabled={isAnalyzing}
-                className="inline-flex items-center gap-2 px-5 py-3 rounded bg-transparent text-[#e53e3e] border border-[rgba(229,62,62,0.15)] font-semibold font-ui text-xs tracking-wider transition-all hover:border-[#e53e3e] hover:bg-[rgba(229,62,62,0.07)] cursor-pointer disabled:opacity-40 disabled:pointer-events-none select-none uppercase active:scale-98"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-black/40 text-[#e53e3e] border border-[rgba(229,62,62,0.25)] hover:border-[#e53e3e] font-bold font-ui text-xs tracking-wider transition-all duration-300 hover:bg-[rgba(229,62,62,0.06)] hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-40 disabled:pointer-events-none select-none uppercase"
               >
                 <RotateCcw className={`w-3.5 h-3.5 ${isAnalyzing ? 'animate-spin' : ''}`} />
                 <span>রিজেনারেট (Regenerate)</span>
@@ -1622,7 +1627,7 @@ export default function App() {
 
             <button
               onClick={handleRefreshApp}
-              className="inline-flex items-center gap-2 px-4 py-3 rounded bg-transparent text-[#94a3b8] border border-white/5 hover:border-[rgba(229,62,62,0.15)] hover:text-white font-semibold font-ui text-xs tracking-wider transition-all cursor-pointer select-none uppercase active:scale-98"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-black/20 text-[#94a3b8] border border-white/5 hover:border-[rgba(229,62,62,0.15)] hover:text-white font-bold font-ui text-xs tracking-wider transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer select-none uppercase"
               title="রিফ্রেশ করুন"
             >
               <RefreshCw className="w-3.5 h-3.5" />
@@ -1722,16 +1727,17 @@ export default function App() {
                     </div>
 
                     {/* Cards Container */}
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                        {list.map((headline, idx) => {
                         const uniqueId = `${catKey}-${idx}`;
                         return (
                           <div
                             key={uniqueId}
-                            className="headline-card-scaled bg-[rgba(5,13,16,0.8)] border border-[rgba(0,255,60,0.18)] rounded-r-lg border-l-4 p-4 sm:p-5 shadow-md flex flex-col justify-between transition-all hover:border-[rgba(0,255,60,0.4)] hover:bg-[rgba(0,255,60,0.04)] hover:translate-x-1 cursor-default"
+                            className="headline-card-scaled bg-black/40 backdrop-blur-md border border-[rgba(255,255,255,0.03)] rounded-r-xl border-l-4 p-5 sm:p-6 shadow-[0_4px_20px_rgba(0,0,0,0.45)] flex flex-col justify-between transition-all duration-300 hover:border-[var(--cat-color)]/40 hover:bg-white/[0.01] hover:translate-x-1.5 hover:shadow-[0_8px_30px_rgba(0,0,0,0.7)] cursor-default"
                             style={{ 
                               borderLeftColor: config.color,
-                              '--cat-color': config.color
+                              '--cat-color': config.color,
+                              animationDelay: `${idx * 0.08}s`
                             } as React.CSSProperties}
                           >
                             <p className="font-bangla text-[15px] sm:text-base text-white/95 leading-relaxed antialiased font-medium mb-3 select-text">
@@ -1793,16 +1799,17 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {displayedHeadlines.map((headline, idx) => {
                     const uniqueId = `general-${idx}`;
                     return (
                       <div
                         key={uniqueId}
-                        className="headline-card-scaled bg-[rgba(5,13,16,0.8)] border border-[rgba(0,255,60,0.18)] rounded-r-lg border-l-4 p-4 sm:p-5 shadow-md flex flex-col justify-between transition-all hover:border-[rgba(0,255,60,0.4)] hover:bg-[rgba(0,255,60,0.04)] hover:translate-x-1 cursor-default"
+                        className="headline-card-scaled bg-black/40 backdrop-blur-md border border-[rgba(255,255,255,0.03)] rounded-r-xl border-l-4 p-5 sm:p-6 shadow-[0_4px_20px_rgba(0,0,0,0.45)] flex flex-col justify-between transition-all duration-300 hover:border-[var(--cat-color)]/40 hover:bg-white/[0.01] hover:translate-x-1.5 hover:shadow-[0_8px_30px_rgba(0,0,0,0.7)] cursor-default"
                         style={{ 
                           borderLeftColor: CATEGORIES.general.color,
-                          '--cat-color': CATEGORIES.general.color
+                          '--cat-color': CATEGORIES.general.color,
+                          animationDelay: `${idx * 0.08}s`
                         } as React.CSSProperties}
                       >
                         <p className="font-bangla text-[15px] sm:text-base text-white/95 leading-relaxed antialiased font-medium mb-2.5 select-text">
