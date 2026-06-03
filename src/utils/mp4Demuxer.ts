@@ -311,11 +311,24 @@ export async function extractAudioFromMp4(
 }
 
 export function isMp4File(file: File): boolean {
-  // Check typical MP4 file extensions or mimeType
-  if (file.name.endsWith('.mp4') || file.name.endsWith('.m4v') || file.name.endsWith('.m4a')) {
+  // Check typical MP4 file extensions or mimeType (including QuickTime MOV and 3GP which are structurally identical)
+  const nameLower = file.name.toLowerCase();
+  if (
+    nameLower.endsWith('.mp4') || 
+    nameLower.endsWith('.m4v') || 
+    nameLower.endsWith('.m4a') ||
+    nameLower.endsWith('.mov') ||
+    nameLower.endsWith('.3gp')
+  ) {
     return true;
   }
-  if (file.type === 'video/mp4' || file.type === 'audio/mp4' || file.type === 'audio/x-m4a') {
+  if (
+    file.type === 'video/mp4' || 
+    file.type === 'audio/mp4' || 
+    file.type === 'audio/x-m4a' ||
+    file.type === 'video/quicktime' ||
+    file.type === 'video/3gpp'
+  ) {
     return true;
   }
   return false;

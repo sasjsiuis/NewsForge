@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SYSTEM_API_KEYS, getSavedRotatorIndex, saveRotatorIndex } from './apiKeys';
 import { extractAudioFromMp4, isMp4File } from './utils/mp4Demuxer';
 import { compressAudioToWav } from './utils/audioCompressor';
+import { extractTextFromPdf, extractTextFromTxt } from './utils/pdfExtractor';
 import { AudioVisualizer } from './components/AudioVisualizer';
 const logoImg = "/logo01.jpg";
 import { 
@@ -196,6 +197,8 @@ export default function App() {
   const [imgFailed, setImgFailed] = useState<boolean>(false);
   const [isExtractingAudio, setIsExtractingAudio] = useState<boolean>(false);
   const [extractionProgress, setExtractionProgress] = useState<number>(0);
+  const [isExtractingPdf, setIsExtractingPdf] = useState<boolean>(false);
+  const [pdfProgressMsg, setPdfProgressMsg] = useState<string>('');
 
   // Audio player state
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -224,6 +227,7 @@ export default function App() {
   // Refs
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const pdfInputRef = useRef<HTMLInputElement | null>(null);
 
   // Load API Key on mount
   useEffect(() => {
@@ -341,38 +345,51 @@ export default function App() {
       return;
     }
 
+    // Force offline super-fast audio extraction for ALL MP4/MOV/QuickTime videos (regardless of size)
+    // This turns a heavy 5MB-2GB video into a lightweight 200KB-3MB AAC audio track in 1-2 seconds.
+    const isVideo = file.type.startsWith('video/') || isMp4File(file);
+    const isAlreadyExtracted = file.name.endsWith('_soundtrack.aac');
+
+    if (isVideo && !isAlreadyExtracted) {
+      setIsExtractingAudio(true);
+      setExtractionProgress(0);
+      showToast('⏱ ভিডিও থেকে অডিও আলাদা করা হচ্ছে... এতে ব্যাকএন্ড লোড ও সাইটের গতি ১০ গুণ বেড়ে যাবে!');
+      try {
+        const audioBlob = await extractAudioFromMp4(file, (progress) => {
+          setExtractionProgress(progress);
+        });
+        
+        const audioFileName = file.name.replace(/\.[^/.]+$/, "") + "_soundtrack.aac";
+        const extractedFile = new File([audioBlob], audioFileName, { type: 'audio/aac' });
+        
+        setUploadedFile(extractedFile);
+        setAccumulatedHeadlines([]);
+        setDisplayedHeadlines([]);
+        showToast('সাউন্ডট্র্যাক আলাদা করা সম্পন্ন হয়েছে! একদম হালকা অডিও লোড করা হয়েছে ✓');
+      } catch (error: any) {
+        console.error("Extraction error:", error);
+        // Fallback for smaller files if parsing boxes fails
+        if (file.size <= 35 * 1024 * 1024) {
+          setUploadedFile(file);
+          setAccumulatedHeadlines([]);
+          setDisplayedHeadlines([]);
+          showToast('সরাসরি ভিডিও লোড করা হয়েছে (ব্যাকআপ পদ্ধতি) ✓');
+        } else {
+          showToast(error?.message || 'অডিও নিষ্কাশন ব্যর্থ হয়েছে। অনুগ্রহ করে স্ট্যান্ডার্ড MP4 ভিডিও দিন।');
+        }
+      } finally {
+        setIsExtractingAudio(false);
+        setExtractionProgress(0);
+      }
+      return;
+    }
+
     const SAFE_MAX_SIZE = 35 * 1024 * 1024; // 35 MB safe limit for client-side processing
     
     if (file.size > SAFE_MAX_SIZE) {
-      if (isMp4File(file)) {
-        setIsExtractingAudio(true);
-        setExtractionProgress(0);
-        showToast('⏱ বিশাল ভিডিও ফাইল সনাক্ত হয়েছে! র্যাম নিরাপদ রাখতে অফলাইনে অডিও আলাদা করা হচ্ছে...');
-        try {
-          const audioBlob = await extractAudioFromMp4(file, (progress) => {
-            setExtractionProgress(progress);
-          });
-          
-          const audioFileName = file.name.replace(/\.[^/.]+$/, "") + "_soundtrack.aac";
-          const extractedFile = new File([audioBlob], audioFileName, { type: 'audio/aac' });
-          
-          setUploadedFile(extractedFile);
-          setAccumulatedHeadlines([]);
-          setDisplayedHeadlines([]);
-          showToast('সাউন্ডট্র্যাক আলাদা করা সম্পন্ন হয়েছে! ৩৫ এমবির নিচে হালকা অডিও লোড করা হয়েছে ✓');
-        } catch (error: any) {
-          console.error("Extraction error:", error);
-          showToast(error?.message || 'অডিও নিষ্কাশন ব্যর্থ হয়েছে। স্ট্যান্ডার্ড MP4 ফাইল ব্যবহার করুন।');
-        } finally {
-          setIsExtractingAudio(false);
-          setExtractionProgress(0);
-        }
-        return;
-      } else {
-        const errorMsg = 'মোবাইল ব্রাউজার নিরাপদ রাখতে সর্বোচ্চ ৩৫ MB সাইজের ফাইল দিন। ১-২ জিবির বিশাল ফাইলের ক্ষেত্রে শুধুমাত্র .mp4 ভিডিও অডিও নিষ্কাশন সাপোর্ট করে।';
-        showToast(errorMsg);
-        return;
-      }
+      const errorMsg = 'মোবাইল ব্রাউজার নিরাপদ রাখতে সর্বোচ্চ ৩৫ MB সাইজের ফাইল দিন। ১-২ জিবির বিশাল ফাইলের ক্ষেত্রে শুধুমাত্র .mp4 ভিডিও অডিও নিষ্কাশন সাপোর্ট করে।';
+      showToast(errorMsg);
+      return;
     }
 
     setUploadedFile(file);
@@ -408,6 +425,55 @@ export default function App() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       processSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const handlePdfFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const nameLower = file.name.toLowerCase();
+      
+      if (nameLower.endsWith('.pdf')) {
+        setIsExtractingPdf(true);
+        setPdfProgressMsg('এআই পিডিএফ রিডার সচল হচ্ছে...');
+        try {
+          const extractedText = await extractTextFromPdf(file, (msg) => {
+            setPdfProgressMsg(msg);
+          });
+          if (!extractedText.trim()) {
+            showToast('পিডিএফ ফাইল থেকে কোনো টেক্সট পাওয়া যায়নি। সম্ভবত এটি একটি স্ক্যান করা ছবি বা লক ফাইল।');
+          } else {
+            setInputText(extractedText);
+            showToast('পিডিএফ থেকে টেক্সট এক্সট্রাকশন সফল হয়েছে ✓');
+          }
+        } catch (err: any) {
+          console.error('PDF extraction failed:', err);
+          showToast(err?.message || 'পিডিএফ ফাইলটি বিশ্লেষণ করতে সমস্যা হয়েছে।');
+        } finally {
+          setIsExtractingPdf(false);
+          setPdfProgressMsg('');
+        }
+      } else if (nameLower.endsWith('.txt')) {
+        setIsExtractingPdf(true);
+        setPdfProgressMsg('টেক্সট ফাইল পড়া হচ্ছে...');
+        try {
+          const extractedText = await extractTextFromTxt(file);
+          if (!extractedText.trim()) {
+            showToast('টেক্সট ফাইলটি খালি!');
+          } else {
+            setInputText(extractedText);
+            showToast('টেক্সট ফাইল সফলভাবে লোড হয়েছে ✓');
+          }
+        } catch (err: any) {
+          console.error('Txt extraction failed:', err);
+          showToast(err?.message || 'টেক্সট ফাইল পড়তে সমস্যা হয়েছে।');
+        } finally {
+          setIsExtractingPdf(false);
+        }
+      } else {
+        showToast('শুধুমাত্র .pdf অথবা .txt ফাইল সাপোর্ট করে');
+      }
+      e.target.value = '';
     }
   };
 
@@ -522,9 +588,11 @@ export default function App() {
       if (inputMode === 'media') {
         // Convert file
         let fileToProcess = uploadedFile!;
-        if (uploadedFile!.size > 2 * 1024 * 1024) {
+        // Bypassing browser-based re-sampling for files under 12MB as they are already light (AAC/MP3/M4A/etc.)
+        // This makes media processing lightning fast (0-second wait compared to long CPU-based audio decoding)
+        if (uploadedFile!.size > 12 * 1024 * 1024) {
           setProgress(15);
-          setStatusMessage('মোবাইল ও নেটওয়ার্কের জন্য অডিও কম্প্রেশন করা হচ্ছে...');
+          setStatusMessage('মোবাইল ও নেটওয়ার্কের জন্য অডিও কম্প্রেস করা হচ্ছে...');
           try {
             const compressedBlob = await compressAudioToWav(uploadedFile!, 16000, (msg) => {
               setStatusMessage(`কম্প্রেশন: ${msg}`);
@@ -1482,9 +1550,37 @@ export default function App() {
           </>
         ) : (
           <div className="bg-[rgba(5,13,16,0.6)] border border-[rgba(229,62,62,0.15)] rounded-xl p-5 mb-5 relative z-10 animate-[slideInCard_0.2s_ease_forwards] shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
-            <div className="mb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-y-2 mb-3">
               <p className="font-ui text-xs font-bold text-white/95">সংবাদ বা স্ক্রিপ্ট এখানে পেস্ট করুন</p>
+              
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => pdfInputRef.current?.click()}
+                  disabled={isExtractingPdf}
+                  className="text-[11px] font-ui font-bold bg-[#e53e3e]/10 border border-[#e53e3e]/20 hover:border-[#e53e3e]/50 hover:bg-[#e53e3e]/15 text-[#e53e3e] rounded-lg px-3 py-1.5 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none select-none"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>পিডিএফ (.pdf) বা টেক্সট (.txt) লোড করুন</span>
+                </button>
+                <input
+                  type="file"
+                  ref={pdfInputRef}
+                  onChange={handlePdfFileChange}
+                  accept=".pdf,.txt"
+                  className="hidden"
+                />
+              </div>
             </div>
+
+            {isExtractingPdf && (
+              <div className="flex bg-[rgba(229,62,62,0.06)] border border-[rgba(229,62,62,0.25)] rounded-lg p-3.5 items-center gap-3 mb-4 animate-[slideInCard_0.2s_ease_forwards]">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#e53e3e] animate-ping shrink-0"></div>
+                <span className="font-bangla text-xs sm:text-sm text-[#e53e3e] font-semibold flex-1">
+                  {pdfProgressMsg || 'পিডিএফ ফাইল থেকে কথা/টেক্সট আলাদা করা হচ্ছে...'}
+                </span>
+              </div>
+            )}
             
             <textarea
               value={inputText}
