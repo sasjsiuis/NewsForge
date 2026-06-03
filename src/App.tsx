@@ -212,6 +212,7 @@ export default function App() {
   const [inputMode, setInputMode] = useState<'media' | 'text'>('media');
   const [inputText, setInputText] = useState<string>('');
   const [speakerName, setSpeakerName] = useState<string>('');
+  const [includeWarning, setIncludeWarning] = useState<boolean>(true);
 
   // AI & results execution states
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
@@ -612,6 +613,10 @@ export default function App() {
         const mimeType = fileToProcess.type || 'audio/wav';
         let promptText = videoType === 'news' ? NEWS_MODE_PROMPT : GENERAL_MODE_PROMPT;
 
+        if (videoType === 'news' && !includeWarning) {
+          promptText += `\n\nকঠিন ও বিশেষ নির্দেশ: কোনোভাবেই 'warning' (হুঁশিয়ারিমূলক Warning/Action) ক্যাটাগরির শিরোনাম তৈরি করবে না। এই ক্যাটাগরিটি সম্পূর্ণ বাদ দাও। JSON আউটপুটে 'warning' ক্যাটাগরির কোনো এন্ট্রি থাকবে না। শুধু বাকি ৪টি ক্যাটাগরি ('hard', 'quote', 'political', 'curiosity') ব্যবহার করে শিরোনাম তৈরি করো।`;
+        }
+
         if (speakerName.trim()) {
           promptText = `খবরের প্রধান ব্যক্তি বা বক্তার নাম/পদবি: "${speakerName.trim()}".
 গুরুত্বপূর্ণ নির্দেশাবলী:
@@ -637,6 +642,10 @@ export default function App() {
         setStatusMessage('খবরের তথ্য বিশ্লেষণ প্রসেস শুরু হচ্ছে...');
         let promptText = videoType === 'news' ? TEXT_NEWS_MODE_PROMPT : TEXT_GENERAL_MODE_PROMPT;
         
+        if (videoType === 'news' && !includeWarning) {
+          promptText += `\n\nকঠিন ও বিশেষ নির্দেশ: কোনোভাবেই 'warning' (হুঁশিয়ারিমূলক Warning/Action) ক্যাটাগরির শিরোনাম তৈরি করবে না। এই ক্যাটাগরিটি সম্পূর্ণ বাদ দাও। JSON আউটপুটে 'warning' ক্যাটাগরির কোনো এন্ট্রি থাকবে না। শুধু বাকি ৪টি ক্যাটাগরি ('hard', 'quote', 'political', 'curiosity') ব্যবহার করে শিরোনাম তৈরি করো।`;
+        }
+
         if (speakerName.trim()) {
           promptText = `খবরের প্রধান ব্যক্তি বা বক্তার নাম/পদবি: "${speakerName.trim()}".
 গুরুত্বপূর্ণ নির্দেশাবলী:
@@ -649,7 +658,7 @@ export default function App() {
         contents.push({
           parts: [
             {
-              text: `বিশ্লেষণ করার টেক্সট:\n"""\n${inputText}\n"""\n\nইনস্ট্রাকশন:\n${promptText}`
+              text: `বিশ্লেषण করার টেক্সট:\n"""\n${inputText}\n"""\n\nইনস্ট্রাকশন:\n${promptText}`
             }
           ]
         });
@@ -992,7 +1001,10 @@ export default function App() {
         }
       }
 
-      const outputHeadlines: Headline[] = parsedData?.headlines || [];
+      let outputHeadlines: Headline[] = parsedData?.headlines || [];
+      if (!includeWarning) {
+        outputHeadlines = outputHeadlines.filter(h => h.cat !== 'warning');
+      }
 
       if (outputHeadlines.length === 0) {
         showToast('কোনো শিরোনাম তৈরি সম্ভব হয়নি, পুনরায় চেষ্টা করুন');
@@ -1695,6 +1707,26 @@ export default function App() {
                 </div>
               </label>
             </div>
+
+            {videoType === 'news' && (
+              <div className="mt-4 border-t border-white/5 pt-3.5 flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="include_warning_toggle"
+                  checked={includeWarning}
+                  onChange={(e) => setIncludeWarning(e.target.checked)}
+                  className="w-4.5 h-4.5 accent-[#e53e3e] border border-white/20 bg-black cursor-pointer rounded mt-0.5 scale-110"
+                />
+                <label htmlFor="include_warning_toggle" className="cursor-pointer select-none">
+                  <p className="font-ui text-xs font-bold text-white/95 leading-none">
+                    হুঁশিয়ারিমূলক (Warning) শিরোনাম তৈরি করুন
+                  </p>
+                  <p className="text-[10px] text-[#94a3b8] mt-1 font-ui">
+                    সংবাদ বিশ্লেষণ করার সময় কড়া বা কঠোর হুঁশিয়ারি শিরোনামের ক্যাটাগরি যুক্ত করতে এটি সক্রিয় রাখুন।
+                  </p>
+                </label>
+              </div>
+            )}
           </div>
         )}
 
