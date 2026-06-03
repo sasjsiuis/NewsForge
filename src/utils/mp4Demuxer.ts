@@ -246,6 +246,15 @@ export async function extractAudioFromMp4(
   let stscIdx = 0;
   const totalChunks = chunkOffsets.length;
 
+  // Let's pre-compute sizes and samples per chunk so we can read them in batches
+  const chunkInfos: {
+    startOffset: number;
+    byteSize: number;
+    samplesCount: number;
+    sampleStartIndex: number;
+    samplesPerChunkMapIdx: number;
+  }[] = [];
+
   for (let chunkIdx = 0; chunkIdx < totalChunks; chunkIdx++) {
     const chunk1Based = chunkIdx + 1;
     if (stscIdx + 1 < sampleToChunks.length && chunk1Based >= sampleToChunks[stscIdx + 1].firstChunk) {
@@ -262,29 +271,65 @@ export async function extractAudioFromMp4(
         chunkByteSize += sampleSizes[sIdx];
       }
     }
-    
-    if (chunkByteSize > 0) {
-      const chunkStartOffset = chunkOffsets[chunkIdx];
-      const chunkBlob = file.slice(chunkStartOffset, chunkStartOffset + chunkByteSize);
-      const chunkBuffer = new Uint8Array(await chunkBlob.arrayBuffer());
-      
+
+    chunkInfos.push({
+      startOffset: chunkOffsets[chunkIdx],
+      byteSize: chunkByteSize,
+      samplesCount: samplesInThisChunk,
+      sampleStartIndex: sampleIdx,
+      samplesPerChunkMapIdx: stscIdx
+    });
+
+    sampleIdx += samplesInThisChunk;
+  }
+
+  // Process chunk reads in parallel batches of 40
+  const BATCH_SIZE = 40;
+  for (let b = 0; b < totalChunks; b += BATCH_SIZE) {
+    const limit = Math.min(b + BATCH_SIZE, totalChunks);
+    const readPromises: Promise<{ index: number; buffer: Uint8Array | null }>[] = [];
+
+    for (let i = b; i < limit; i++) {
+      const info = chunkInfos[i];
+      if (info.byteSize > 0) {
+        const promise = (async () => {
+          try {
+            const chunkBlob = file.slice(info.startOffset, info.startOffset + info.byteSize);
+            const arrayBuf = await chunkBlob.arrayBuffer();
+            return { index: i, buffer: new Uint8Array(arrayBuf) };
+          } catch (e) {
+            console.error("Failed to read chunk buffer in batch", e);
+            return { index: i, buffer: null };
+          }
+        })();
+        readPromises.push(promise);
+      } else {
+        readPromises.push(Promise.resolve({ index: i, buffer: null }));
+      }
+    }
+
+    const results = await Promise.all(readPromises);
+
+    for (let r = 0; r < results.length; r++) {
+      const { index, buffer } = results[r];
+      if (!buffer) continue;
+
+      const info = chunkInfos[index];
       let chunkInnerOffset = 0;
-      for (let s = 0; s < samplesInThisChunk; s++) {
-        const sIdx = sampleIdx + s;
+      for (let s = 0; s < info.samplesCount; s++) {
+        const sIdx = info.sampleStartIndex + s;
         if (sIdx >= sampleSizes.length) break;
         
         const sampleSize = sampleSizes[sIdx];
         const adtsHeader = createADTSHeader(sampleSize + 7, freqIdx, channels);
         
         currentBatch.push(adtsHeader);
-        currentBatch.push(chunkBuffer.subarray(chunkInnerOffset, chunkInnerOffset + sampleSize));
+        currentBatch.push(buffer.subarray(chunkInnerOffset, chunkInnerOffset + sampleSize));
         currentBatchSize += 7 + sampleSize;
         
         chunkInnerOffset += sampleSize;
       }
     }
-    
-    sampleIdx += samplesInThisChunk;
 
     // Trigger regular interface notification and clear storage buffers periodically
     if (currentBatchSize >= FLUSH_LIMIT) {
@@ -293,7 +338,7 @@ export async function extractAudioFromMp4(
       currentBatchSize = 0;
       
       if (onProgress) {
-        onProgress(Math.min(99, Math.round((chunkIdx / totalChunks) * 100)));
+        onProgress(Math.min(99, Math.round((limit / totalChunks) * 100)));
       }
     }
   }

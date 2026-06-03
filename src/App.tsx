@@ -348,61 +348,12 @@ export default function App() {
       return;
     }
 
-    // Force offline super-fast audio extraction for ALL MP4/MOV/QuickTime videos (regardless of size)
-    // This turns a heavy 5MB-2GB video into a lightweight 200KB-3MB AAC audio track in 1-2 seconds.
-    const isVideo = file.type.startsWith('video/') || isMp4File(file);
-    const isAlreadyExtracted = file.name.endsWith('_soundtrack.aac');
-
-    if (isVideo && !isAlreadyExtracted) {
-      setIsExtractingAudio(true);
-      setExtractionProgress(0);
-      showToast('⏱ ভিডিও থেকে অডিও আলাদা করা হচ্ছে... এতে ব্যাকএন্ড লোড ও সাইটের গতি ১০ গুণ বেড়ে যাবে!');
-      try {
-        const audioBlob = await extractAudioFromMp4(file, (progress) => {
-          setExtractionProgress(progress);
-        });
-        
-        const audioFileName = file.name.replace(/\.[^/.]+$/, "") + "_soundtrack.aac";
-        const extractedFile = new File([audioBlob], audioFileName, { type: 'audio/aac' });
-        
-        setUploadedFile(extractedFile);
-        setAccumulatedHeadlines([]);
-        setDisplayedHeadlines([]);
-        setTranscript('');
-        showToast('সাউন্ডট্র্যাক আলাদা করা সম্পন্ন হয়েছে! একদম হালকা অডিও লোড করা হয়েছে ✓');
-      } catch (error: any) {
-        console.error("Extraction error:", error);
-        // Fallback for smaller files if parsing boxes fails
-        if (file.size <= 35 * 1024 * 1024) {
-          setUploadedFile(file);
-          setAccumulatedHeadlines([]);
-          setDisplayedHeadlines([]);
-          setTranscript('');
-          showToast('সরাসরি ভিডিও লোড করা হয়েছে (ব্যাকআপ পদ্ধতি) ✓');
-        } else {
-          showToast(error?.message || 'অডিও নিষ্কাশন ব্যর্থ হয়েছে। অনুগ্রহ করে স্ট্যান্ডার্ড MP4 ভিডিও দিন।');
-        }
-      } finally {
-        setIsExtractingAudio(false);
-        setExtractionProgress(0);
-      }
-      return;
-    }
-
-    const SAFE_MAX_SIZE = 35 * 1024 * 1024; // 35 MB safe limit for client-side processing
-    
-    if (file.size > SAFE_MAX_SIZE) {
-      const errorMsg = 'মোবাইল ব্রাউজার নিরাপদ রাখতে সর্বোচ্চ ৩৫ MB সাইজের ফাইল দিন। ১-২ জিবির বিশাল ফাইলের ক্ষেত্রে শুধুমাত্র .mp4 ভিডিও অডিও নিষ্কাশন সাপোর্ট করে।';
-      showToast(errorMsg);
-      return;
-    }
-
     setUploadedFile(file);
     // Reset previous generation when loading new file
     setAccumulatedHeadlines([]);
     setDisplayedHeadlines([]);
     setTranscript('');
-    showToast('ফাইল লোড সফল হয়েছে ✓');
+    showToast('ফাইল সফলভাবে লোড হয়েছে! বিশ্লেষণ করতে নিচের "শিরোনাম ও ক্যাপশন জেনারেট করুন" বাটনে ক্লিক করুন ✓');
   };
 
   // Drag handlers
@@ -594,10 +545,32 @@ export default function App() {
       if (inputMode === 'media') {
         // Convert file
         let fileToProcess = uploadedFile!;
-        // Bypassing browser-based re-sampling for all files to protect mobile memory (RAM safe)
-        // Gemini natively processes compressed formats (AAC, MP3, WAV, M4A) instantly.
+
+        const isVideo = fileToProcess.type.startsWith('video/') || isMp4File(fileToProcess);
+        const isAlreadyAudio = fileToProcess.name.endsWith('_soundtrack.aac') || fileToProcess.type.startsWith('audio/');
+
+        if (isVideo && !isAlreadyAudio) {
+          setProgress(15);
+          setStatusMessage('মোবাইল ও নেটওয়ার্কের জন্য ভিডিও থেকে অডিওটি আলাদা করা হচ্ছে...');
+          try {
+            const audioBlob = await extractAudioFromMp4(fileToProcess, (extractionProgress) => {
+              setProgress(15 + Math.round(extractionProgress * 0.15)); // maps 0-100% to 15-30% progress state
+              setStatusMessage(`ভিডিও থেকে অডিও নিষ্কাশন করা হচ্ছে... ${extractionProgress}%`);
+            });
+            const audioFileName = fileToProcess.name.replace(/\.[^/.]+$/, "") + "_soundtrack.aac";
+            fileToProcess = new File([audioBlob], audioFileName, { type: 'audio/aac' });
+            // Save it locally in state so subsequent retries are completely instant
+            setUploadedFile(fileToProcess);
+          } catch (extractErr) {
+            console.warn("Direct audio extraction failure, fallback to direct upload:", extractErr);
+            if (fileToProcess.size > 22 * 1024 * 1024) {
+              throw new Error("ভিডিওটির আকার অনেক বড় হওয়ায় নিষ্কাশন ব্যর্থ হয়েছে। মোবাইল মেমোরি বাঁচানোর জন্য অনুগ্রহ করে সরাসরি অডিও অথবা ছোট ভিডিও ফাইল আপলোড করুন।");
+            }
+          }
+        }
+
         setProgress(35);
-        setStatusMessage('বেস-৬৪ অডিও রূপান্তর করা হচ্ছে...');
+        setStatusMessage('বেস-৬৪ রূপান্তর করা হচ্ছে...');
         const base64Data = await readFileAsBase64(fileToProcess);
 
         setProgress(45);
