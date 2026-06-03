@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SYSTEM_API_KEYS, getSavedRotatorIndex, saveRotatorIndex } from './apiKeys';
 import { extractAudioFromMp4, isMp4File } from './utils/mp4Demuxer';
-import { compressAudioToWav } from './utils/audioCompressor';
 import { extractTextFromPdf, extractTextFromTxt } from './utils/pdfExtractor';
 import { AudioVisualizer } from './components/AudioVisualizer';
 const logoImg = "/logo01.jpg";
@@ -79,10 +78,11 @@ const TICKER_TEXT = "• NewsForge AI: অডিও ও ভিডিও ফা�
 const NEWS_MODE_PROMPT = `তুমি একজন অভিজ্ঞ বাংলাদেশি 'চিফ নিউজ এডিটর'।
 
 তোমার কাজ:
-এই অডিও/ভিডিও ফাইলটি মনোযোগ দিয়ে শোনো। বক্তা যা বলেছেন, শুধুমাত্র সেই বাস্তব কথার উপর ভিত্তি করে শিরোনাম তৈরি করো।
+১. এই অডিও/ভিডিও ফাইলটি মনোযোগ দিয়ে শোনো। বক্তা যা বলেছেন, শুধুমাত্র সেই বাস্তব কথার উপর ভিত্তি করে শিরোনাম তৈরি করো।
+২. অডিও বা ভিডিওতে যা বলা আছে, তার সম্পূর্ণ বাংলা লিখিত অনুলিপি (Speech-to-Text Transcript) তৈরি করো। কোনো বাক্য বা শব্দ বাদ না দিয়ে সম্পূর্ণ বক্তব্যটি অনুলিপিকরণ করবে।
 
 কঠিন নিষেধ:
-- বক্তা যা বলেননি তা শিরোনামে লেখা যাবে না।
+- বক্তা যা বলেননি তা শিরোনাম বা অনুলিপিতে লেখা যাবে না।
 - কোনো কাল্পনিক তথ্য, ঘটনা বা উদ্ধৃতি যোগ করা করা যাবে না।
 - অডিও স্পষ্ট না হলে "অডিও স্পষ্ট নয়" বলো, কিছু বানিয়ে দিও না।
 
@@ -116,7 +116,8 @@ const NEWS_MODE_PROMPT = `তুমি একজন অভিজ্ঞ বাং
     {"cat": "warning",   "text": "শিরোনাম এখানে",      "ts": null},
     {"cat": "political", "text": "শিরোনাম এখানে",      "ts": null},
     {"cat": "curiosity", "text": "শিরোনাম এখানে?",     "ts": null}
-  ]
+  ],
+  "transcript": "এখানে অডিও বা ভিডিওতে যা বলা হয়েছে তার সম্পূর্ণ বাংলা লিখিত রূপ/অনুলিখনের টেক্সট থাকবে।"
 }
 
 ts ফিল্ডে: উদ্ধৃতির জন্য আনুমানিক সময় দাও (যেমন "0:34"), অন্যগুলোর জন্য null রাখো।`;
@@ -212,7 +213,8 @@ export default function App() {
   const [inputMode, setInputMode] = useState<'media' | 'text'>('media');
   const [inputText, setInputText] = useState<string>('');
   const [speakerName, setSpeakerName] = useState<string>('');
-  const [includeWarning, setIncludeWarning] = useState<boolean>(true);
+  const [includeWarning, setIncludeWarning] = useState<boolean>(false);
+  const [transcript, setTranscript] = useState<string>('');
 
   // AI & results execution states
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
@@ -366,6 +368,7 @@ export default function App() {
         setUploadedFile(extractedFile);
         setAccumulatedHeadlines([]);
         setDisplayedHeadlines([]);
+        setTranscript('');
         showToast('সাউন্ডট্র্যাক আলাদা করা সম্পন্ন হয়েছে! একদম হালকা অডিও লোড করা হয়েছে ✓');
       } catch (error: any) {
         console.error("Extraction error:", error);
@@ -374,6 +377,7 @@ export default function App() {
           setUploadedFile(file);
           setAccumulatedHeadlines([]);
           setDisplayedHeadlines([]);
+          setTranscript('');
           showToast('সরাসরি ভিডিও লোড করা হয়েছে (ব্যাকআপ পদ্ধতি) ✓');
         } else {
           showToast(error?.message || 'অডিও নিষ্কাশন ব্যর্থ হয়েছে। অনুগ্রহ করে স্ট্যান্ডার্ড MP4 ভিডিও দিন।');
@@ -397,6 +401,7 @@ export default function App() {
     // Reset previous generation when loading new file
     setAccumulatedHeadlines([]);
     setDisplayedHeadlines([]);
+    setTranscript('');
     showToast('ফাইল লোড সফল হয়েছে ✓');
   };
 
@@ -589,21 +594,8 @@ export default function App() {
       if (inputMode === 'media') {
         // Convert file
         let fileToProcess = uploadedFile!;
-        // Bypassing browser-based re-sampling for files under 12MB as they are already light (AAC/MP3/M4A/etc.)
-        // This makes media processing lightning fast (0-second wait compared to long CPU-based audio decoding)
-        if (uploadedFile!.size > 12 * 1024 * 1024) {
-          setProgress(15);
-          setStatusMessage('মোবাইল ও নেটওয়ার্কের জন্য অডিও কম্প্রেস করা হচ্ছে...');
-          try {
-            const compressedBlob = await compressAudioToWav(uploadedFile!, 16000, (msg) => {
-              setStatusMessage(`কম্প্রেশন: ${msg}`);
-            });
-            fileToProcess = new File([compressedBlob], `compressed_${uploadedFile!.name.replace(/\.[^/.]+$/, "")}.wav`, { type: 'audio/wav' });
-          } catch (compressErr) {
-            console.error('Audio compression failed, processing original file.', compressErr);
-          }
-        }
-
+        // Bypassing browser-based re-sampling for all files to protect mobile memory (RAM safe)
+        // Gemini natively processes compressed formats (AAC, MP3, WAV, M4A) instantly.
         setProgress(35);
         setStatusMessage('বেস-৬৪ অডিও রূপান্তর করা হচ্ছে...');
         const base64Data = await readFileAsBase64(fileToProcess);
@@ -1013,6 +1005,13 @@ export default function App() {
         return;
       }
 
+      const extractedTranscript = parsedData?.transcript || '';
+      if (inputMode === 'media' && extractedTranscript) {
+        setTranscript(extractedTranscript);
+      } else {
+        setTranscript('');
+      }
+
       setProgress(100);
       setStatusMessage('সম্পূর্ণ হয়েছে!');
 
@@ -1048,7 +1047,11 @@ export default function App() {
   const handleCopy = (text: string, uniqueId: string) => {
     navigator.clipboard.writeText(text).then(() => {
       setCopiedId(uniqueId);
-      showToast('শিরোনাম কপি হয়েছে ✓');
+      if (uniqueId === 'copy_transcript') {
+        showToast('অনুলিপি (Transcript) কপি হয়েছে ✓');
+      } else {
+        showToast('শিরোনাম কপি হয়েছে ✓');
+      }
       setTimeout(() => setCopiedId(null), 1500);
     }).catch(err => {
       console.error("Failed to copy text:", err);
@@ -1084,6 +1087,7 @@ export default function App() {
     setUploadedFile(null);
     setInputText('');
     setSpeakerName('');
+    setTranscript('');
     setAccumulatedHeadlines([]);
     setDisplayedHeadlines([]);
     setIsPlaying(false);
@@ -1649,67 +1653,27 @@ export default function App() {
             </div>
 
             <h4 className="font-ui text-xs font-semibold text-[#e53e3e] uppercase tracking-wider mb-3 text-center select-none">
-              বিশ্লেষণ মোড নির্বাচন করুন
+              বিশ্লেষণ মোড
             </h4>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <label 
-                className={`flex items-center gap-3.5 p-4 rounded-xl border cursor-pointer transition-all select-none ${
-                  videoType === 'news' 
-                    ? 'border-[#e53e3e] bg-[rgba(229,62,62,0.06)] shadow-[0_2px_10px_rgba(229,62,62,0.1)]' 
-                    : 'border-[rgba(229,62,62,0.1)] bg-black/30 hover:border-[rgba(229,62,62,0.15)]'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="video_mode"
-                  checked={videoType === 'news'}
-                  onChange={() => setVideoType('news')}
-                  className="hidden"
-                />
-                <div className={`p-2 rounded shrink-0 ${videoType === 'news' ? 'bg-[#e53e3e] text-white' : 'bg-white/5 text-[#94a3b8]'}`}>
-                  <Radio className="w-4 h-4" />
+            <div className="flex justify-center w-full">
+              <div className="w-full max-w-md flex items-center gap-3.5 p-4 rounded-xl border border-[#e53e3e] bg-[rgba(229,62,62,0.06)] shadow-[0_2px_10px_rgba(229,62,62,0.1)] select-none">
+                <div className="p-2 rounded shrink-0 bg-[#e53e3e] text-white">
+                  <Radio className="w-4 h-4 animate-pulse" />
                 </div>
-                <div>
+                <div className="text-left">
                   <p className="font-ui text-sm font-bold text-white leading-tight">
                     নিউজ ও রাজনৈতিক অ্যানালিটিক্স
                   </p>
                   <p className="text-[10px] text-[#94a3b8] mt-0.5 font-ui">
-                    পেশাদারসংবাদ ও রাজনৈতিক শিরোনাম বিশ্লেষণ
+                    পেশাদার সংবাদ ও রাজনৈতিক শিরোনাম বিশ্লেষণ
                   </p>
                 </div>
-              </label>
-
-              <label 
-                className={`flex items-center gap-3.5 p-4 rounded-xl border cursor-pointer transition-all select-none ${
-                  videoType === 'general' 
-                    ? 'border-[#e53e3e] bg-[rgba(229,62,62,0.06)] shadow-[0_2px_10px_rgba(229,62,62,0.1)]' 
-                    : 'border-[rgba(229,62,62,0.1)] bg-black/30 hover:border-[rgba(229,62,62,0.15)]'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="video_mode"
-                  checked={videoType === 'general'}
-                  onChange={() => setVideoType('general')}
-                  className="hidden"
-                />
-                <div className={`p-2 rounded shrink-0 ${videoType === 'general' ? 'bg-[#e53e3e] text-white' : 'bg-white/5 text-[#94a3b8]'}`}>
-                  <Activity className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="font-ui text-sm font-bold text-white leading-tight">
-                    সাধারণ কন্টেন্ট ও বক্তব্য
-                  </p>
-                  <p className="text-[10px] text-[#94a3b8] mt-0.5 font-ui">
-                    মৌলিক সাধারণ শিরোনাম ও ক্যাপশন জেনারেটর
-                  </p>
-                </div>
-              </label>
+              </div>
             </div>
 
             {videoType === 'news' && (
-              <div className="mt-4 border-t border-white/5 pt-3.5 flex items-start gap-3">
+              <div className="mt-4 border-t border-white/5 pt-3.5 flex items-start gap-3 justify-center max-w-md mx-auto">
                 <input
                   type="checkbox"
                   id="include_warning_toggle"
@@ -1717,7 +1681,7 @@ export default function App() {
                   onChange={(e) => setIncludeWarning(e.target.checked)}
                   className="w-4.5 h-4.5 accent-[#e53e3e] border border-white/20 bg-black cursor-pointer rounded mt-0.5 scale-110"
                 />
-                <label htmlFor="include_warning_toggle" className="cursor-pointer select-none">
+                <label htmlFor="include_warning_toggle" className="cursor-pointer select-none text-left">
                   <p className="font-ui text-xs font-bold text-white/95 leading-none">
                     হুঁশিয়ারিমূলক (Warning) শিরোনাম তৈরি করুন
                   </p>
@@ -1828,6 +1792,30 @@ export default function App() {
             <span className="font-logo text-xs bg-[rgba(229,62,62,0.08)] border border-[rgba(229,62,62,0.15)] px-3 py-1 rounded-full text-[#e53e3e] font-black uppercase shadow-[0_2px_8px_rgba(229,62,62,0.1)]">
               {displayedHeadlines.length}টি শিরোনাম
             </span>
+          </div>
+        )}
+
+        {/* SPEECH TRANSCRIPTION DISPLAY */}
+        {inputMode === 'media' && transcript && (
+          <div className="bg-black/40 backdrop-blur-md border border-[rgba(229,62,62,0.15)] rounded-xl p-5 mb-6 relative z-10 animate-[slideInCard_0.2s_ease_forwards] text-left">
+            <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-4 select-none">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-4.5 h-4.5 text-[#e53e3e]" />
+                <h4 className="font-bangla text-sm font-bold text-white">অডিও/ভিডিওর সম্পূর্ণ লিখিত অনুলিপি (Speech-to-Text Transcript)</h4>
+              </div>
+              <button
+                onClick={() => handleCopy(transcript, 'copy_transcript')}
+                className="text-[11px] font-ui font-semibold bg-[#e53e3e]/10 border border-[#e53e3e]/20 hover:border-[#e53e3e]/50 hover:bg-[#e53e3e]/20 text-[#e53e3e] hover:text-white rounded-lg px-2.5 py-1.5 flex items-center gap-1.5 transition-all duration-300 cursor-pointer select-none"
+              >
+                {copiedId === 'copy_transcript' ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+                <span>{copiedId === 'copy_transcript' ? 'কপি হয়েছে' : 'অনুলিপি কপি করুন'}</span>
+              </button>
+            </div>
+            <div className="max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+              <p className="font-bangla text-xs sm:text-sm text-slate-200/90 leading-relaxed whitespace-pre-wrap selection:bg-[#e53e3e]/30 selection:text-white antialiased">
+                {transcript}
+              </p>
+            </div>
           </div>
         )}
 
