@@ -3,9 +3,7 @@ import { SYSTEM_API_KEYS, getSavedRotatorIndex, saveRotatorIndex } from './apiKe
 import { extractAudioFromMp4, isMp4File } from './utils/mp4Demuxer';
 import { extractTextFromPdf, extractTextFromTxt } from './utils/pdfExtractor';
 import { AudioVisualizer } from './components/AudioVisualizer';
-// @ts-ignore
-import newsForgeLogo from './assets/images/headline_ai_logo_1780826865938.png';
-const logoImg = newsForgeLogo;
+const logoImg = "/logo.svg";
 import { 
   Key, 
   Upload, 

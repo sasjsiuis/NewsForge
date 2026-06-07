@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect x="0" y="0" width="512" height="256" fill="#FFFFFF" />
+  <rect x="0" y="256" width="512" height="256" fill="#FF0000" />
+  <text 
+    x="50%" 
+    y="50%" 
+    font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" 
+    font-size="330" 
+    font-weight="900" 
+    fill="#000000" 
+    text-anchor="middle" 
+    dominant-baseline="central"
+  >NH</text>
+</svg>
