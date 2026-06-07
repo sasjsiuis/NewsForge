@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --neon: #e53e3e;
-  --neon-dim: rgba(229, 62, 62, 0.08);
-  --neon-glow: 0 2px 10px rgba(229, 62, 62, 0.15);
-  --bg: #090a10;
-  --bg2: #12131e;
-  --surface: rgba(229, 62, 62, 0.02);
-  --border: rgba(229, 62, 62, 0.15);
+  --neon: #d3121d;
+  --neon-dim: rgba(211, 18, 29, 0.08);
+  --neon-glow: 0 2px 10px rgba(211, 18, 29, 0.15);
+  --bg: #090a0f;
+  --bg2: #101117;
+  --surface: rgba(211, 18, 29, 0.02);
+  --border: rgba(211, 18, 29, 0.15);
   --text: #f1f5f9;
   --muted: #94a3b8;
-  --red: #ef4444;
+  --red: #d3121d;
   --amber: #f59e0b;
   --blue: #3b82f6;
   --purple: #a855f7;

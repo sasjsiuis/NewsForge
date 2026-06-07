@@ -283,8 +283,8 @@ export async function extractAudioFromMp4(
     sampleIdx += samplesInThisChunk;
   }
 
-  // Process chunk reads in parallel batches of 40
-  const BATCH_SIZE = 40;
+  // Process chunk reads in parallel batches of 8 for mobile stability and low memory consumption
+  const BATCH_SIZE = 8;
   for (let b = 0; b < totalChunks; b += BATCH_SIZE) {
     const limit = Math.min(b + BATCH_SIZE, totalChunks);
     const readPromises: Promise<{ index: number; buffer: Uint8Array | null }>[] = [];

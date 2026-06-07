@@ -3,7 +3,9 @@ import { SYSTEM_API_KEYS, getSavedRotatorIndex, saveRotatorIndex } from './apiKe
 import { extractAudioFromMp4, isMp4File } from './utils/mp4Demuxer';
 import { extractTextFromPdf, extractTextFromTxt } from './utils/pdfExtractor';
 import { AudioVisualizer } from './components/AudioVisualizer';
-const logoImg = "/logo01.jpg";
+// @ts-ignore
+import newsForgeLogo from './assets/images/headline_ai_logo_1780826865938.png';
+const logoImg = newsForgeLogo;
 import { 
   Key, 
   Upload, 
@@ -73,22 +75,13 @@ const CATEGORIES = {
   }
 };
 
-const TICKER_TEXT = "• NewsForge AI: অডিও ও ভিডিও ফাইল থেকে সেকেন্ডে তৈরি করুন আকর্ষণীয় নিউজ হেডলাইন • বক্তার প্রকৃত বক্তব্যের বাইরে কোনো কাল্পনিক তথ্য যোগ করা হবে না • রিপোর্টার সাঈদ আল মাহদীর একটি বিশেষ উদ্যোগ ";
+const TICKER_TEXT = "• Headline AI: অডিও ও ভিডিও ফাইল থেকে সেকেন্ডে তৈরি করুন আকর্ষণীয় নিউজ হেডলাইন • বক্তার প্রকৃত বক্তব্যের বাইরে কোনো কাল্পনিক তথ্য যোগ করা হবে না • রিপোর্টার সাঈদ আল মাহদীর একটি বিশেষ উদ্যোগ ";
 
 const NEWS_MODE_PROMPT = `তুমি একজন অভিজ্ঞ বাংলাদেশি 'চিফ নিউজ এডিটর'।
 
 তোমার কাজ:
 ১. এই অডিও/ভিডিও ফাইলটি মনোযোগ দিয়ে শোনো। বক্তা যা বলেছেন, শুধুমাত্র সেই বাস্তব কথার উপর ভিত্তি করে শিরোনাম তৈরি করো।
-২. অডিও বা ভিডিওতে যা বলা আছে, তার সম্পূর্ণ বাংলা লিখিত অনুলিপি (Speech-to-Text Transcript) তৈরি করো। কোনো বাক্য বা শব্দ বাদ না দিয়ে সম্পূর্ণ বক্তব্যটি অনুলিপিকরণ করবে।
-
-কঠিন নিষেধ:
-- বক্তা যা বলেননি তা শিরোনাম বা অনুলিপিতে লেখা যাবে না।
-- কোনো কাল্পনিক তথ্য, ঘটনা বা উদ্ধৃতি যোগ করা করা যাবে না।
-- অডিও স্পষ্ট না হলে "অডিও স্পষ্ট নয়" বলো, কিছু বানিয়ে দিও না।
-
-শিরোনাম তৈরির নিয়ম:
-১. বক্তব্যের সবচেয়ে গুরুত্বপূর্ণ তথ্যটি খুঁজে বের করো।
-২. জনজীবনে প্রভাব ফেলে এমন তথ্যকে প্রাধান্য দাও।
+২. অডিও বা ভিডিওতে যা বলা আছে, তার সম্পূর্ণ বাংলা লিখিত অনুলিপি (Speech-to-Text Transcript) তৈরি করো।
 ৩. বক্তার শক্তিশালী শব্দ যেমন 'জিরো টলারেন্স', 'কঠোর ব্যবস্থা', 'ছাড় দেওয়া হবে না' — এগুলো সরাসরি উদ্ধৃতি হিসেবে ব্যবহার করো।
 ৪. শিরোনাম সংক্ষিপ্ত ও ঝাঁজালো রাখো।
 
@@ -105,7 +98,7 @@ const NEWS_MODE_PROMPT = `তুমি একজন অভিজ্ঞ বাং
 ক্যাটাগরি ৪ — "political" (রাজনৈতিক/আক্রমণাত্মক Political/Conflict):
 রাজনৈতিক প্রতিপক্ষ বা সংঘাতের বিষয়।
 ক্যাটাগরি ৫ — "curiosity" (কৌতূহলোদ্দীপক Curiosity/Question):
-দর্শকের মনে প্রশ্ন জাগায়, টকশো বা থাম্বনেইলের জন্য।
+দর্শক কী কৌতূহল অনুভব করবে সেই টাইপের। কৌতূহল জাগায়, থাম্বনেইলের জন্য।
 
 শুধুমাত্র নিচের JSON ফরম্যাটে উত্তর দাও, অন্য কোনো টেক্সট, মার্কডাউন বা backtick দেবে না:
 
@@ -128,7 +121,8 @@ const GENERAL_MODE_PROMPT = `এই ভিডিও/অডিওটি দেখ
 {
   "headlines": [
     {"cat": "general", "text": "শিরোনাম এখানে", "ts": null}
-  ]
+  ],
+  "transcript": "এখানে অডিও বা ভিডিওতে যা বলা হয়েছে তার সম্পূর্ণ বাংলা লিখিত রূপ/অনুলিখনের টেক্সট থাকবে।"
 }`;
 
 const TEXT_NEWS_MODE_PROMPT = `তুমি একজন অভিজ্ঞ বাংলাদেশি 'চিফ নিউজ এডিটর'।
@@ -157,7 +151,7 @@ const TEXT_NEWS_MODE_PROMPT = `তুমি একজন অভিজ্ঞ ব�
 কঠোর সতর্কবার্তা বা শাস্তির ঘোষণা।
 ক্যাটাগরি ৪ — "political" (রাজনৈতিক/আক্রমণাত্মক Political/Conflict):
 রাজনৈতিক প্রতিপক্ষ বা সংঘাতের বিষয়।
-क্যাটাগরি ৫ — "curiosity" (কৌতূহলোদ্দীপক Curiosity/Question):
+ক্যাটাগরি ৫ — "curiosity" (কৌতূহলোদ্দীপক Curiosity/Question):
 দর্শকের মনে প্রশ্ন জাগায়, টকশো বা থাম্বনেইলের জন্য।
 
 শুধুমাত্র নিচের JSON ফরম্যাটে উত্তর দাও, অন্য কোনো টেক্সট, মার্কডাউন বা backtick দেবে না:
@@ -174,214 +168,163 @@ const TEXT_NEWS_MODE_PROMPT = `তুমি একজন অভিজ্ঞ ব�
 
 ts ফিল্ডে: টেক্সট ইনপুটের ক্ষেত্রে কোনো টাইমস্ট্যাম্প (ts) ফিল্ডের প্রয়োজন নেই, তাই ts সবসময় null রাখবে।`;
 
-const TEXT_GENERAL_MODE_PROMPT = `এই খবর বা টেক্সটটি বিশ্লেষণ করে ১০-১৫টি আকর্ষণীয় বাংলা শিরোনাম বা সোশ্যাল মিডিয়া ক্যাপশন তৈরি করো। শুধুমাত্র লেখার বিষয়বস্তুর উপর ভিত্তি করে শিরোনাম দাও।
+const TEXT_GENERAL_MODE_PROMPT = `এই খবর বা টেক্সটটি বিশ্লেষণ করে ১০-১৫টি আকর্ষণীয় বাংলা শিরোনাম বা সোশ্যাল মিডিয়া ক্যাপশন তৈরি করো। শুধুমাত্র খবরের বাস্তব তথ্যের উপর ভিত্তি করে শিরোনাম তৈরি করবে।
 
-শুধুমাত্র JSON ফরম্যাটে দাও, অন্য কোনো টেক্সট বা backtick দেবে না:
+শুধুমাত্র নিচের JSON ফরম্যাটে উত্তর দাও, অন্য কোনো টেক্সট, মার্কডাউন বা backtick দেবে না:
 {
   "headlines": [
     {"cat": "general", "text": "শিরোনাম এখানে", "ts": null}
   ]
 }`;
 
+// Beautiful dual chime synthesizer
+const playNotificationChime = () => {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+    osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.08); // E5
+    
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    
+    osc.start();
+    osc.stop(ctx.currentTime + 0.4);
+  } catch (err) {
+    console.debug('Notify chime failed:', err);
+  }
+};
+
 export default function App() {
-  // Key state
-  const [keySource, setKeySource] = useState<'rotator' | 'custom'>('rotator');
-  const [currentRotatorIndex, setCurrentRotatorIndex] = useState<number>(0);
-  const [apiKey, setApiKey] = useState<string>('');
-  const [tempApiKey, setTempApiKey] = useState<string>('');
+  // --- Refs ---
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const pdfInputRef = useRef<HTMLInputElement | null>(null);
+
+  // --- States ---
+  const [keySource, setKeySource] = useState<'rotator' | 'custom'>(() => {
+    try {
+      const stored = localStorage.getItem('gemini_key_source');
+      return (stored === 'custom') ? 'custom' : 'rotator';
+    } catch {
+      return 'rotator';
+    }
+  });
+
+  const [currentRotatorIndex, setCurrentRotatorIndex] = useState<number>(getSavedRotatorIndex);
+  
+  const [apiKey, setApiKey] = useState<string>(() => {
+    try {
+      return localStorage.getItem('gemini_custom_key') || '';
+    } catch {
+      return '';
+    }
+  });
+  const [tempApiKey, setTempApiKey] = useState<string>(apiKey);
   const [showKeyInput, setShowKeyInput] = useState<boolean>(false);
-  const [infoModalTab, setInfoModalTab] = useState<'privacy' | 'support' | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string>('gemini-3.5-flash');
 
-  // File loading state
+  const [inputMode, setInputMode] = useState<'media' | 'text'>('media');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [imgFailed, setImgFailed] = useState<boolean>(false);
-  const [isExtractingAudio, setIsExtractingAudio] = useState<boolean>(false);
-  const [extractionProgress, setExtractionProgress] = useState<number>(0);
-  const [isExtractingPdf, setIsExtractingPdf] = useState<boolean>(false);
-  const [pdfProgressMsg, setPdfProgressMsg] = useState<string>('');
+  const [inputText, setInputText] = useState<string>('');
+  const [speakerName, setSpeakerName] = useState<string>('');
+  const [includeWarning, setIncludeWarning] = useState<boolean>(true);
+  const [headlineStyle, setHeadlineStyle] = useState<string>('viral');
 
-  // Audio player state
+  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const [progress, setProgress] = useState<number>(0);
+  const [statusMessage, setStatusMessage] = useState<string>('');
+
+  const [displayedHeadlines, setDisplayedHeadlines] = useState<Headline[]>([]);
+  const [accumulatedHeadlines, setAccumulatedHeadlines] = useState<Headline[]>([]);
+  const [transcript, setTranscript] = useState<string>('');
+
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [showFloatingPlayer, setShowFloatingPlayer] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
 
-  // Option states
-  const [videoType, setVideoType] = useState<'news' | 'general'>('news');
-  const [selectedModel, setSelectedModel] = useState<string>('gemini-3.5-flash');
-  const [inputMode, setInputMode] = useState<'media' | 'text'>('media');
-  const [inputText, setInputText] = useState<string>('');
-  const [speakerName, setSpeakerName] = useState<string>('');
-  const [includeWarning, setIncludeWarning] = useState<boolean>(false);
-  const [transcript, setTranscript] = useState<string>('');
-
-  // AI & results execution states
-  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
-  const [progress, setProgress] = useState<number>(0);
-  const [statusMessage, setStatusMessage] = useState<string>('');
-  const [accumulatedHeadlines, setAccumulatedHeadlines] = useState<Headline[]>([]);
-  const [displayedHeadlines, setDisplayedHeadlines] = useState<Headline[]>([]);
+  const [isExtractingPdf, setIsExtractingPdf] = useState<boolean>(false);
+  const [pdfProgressMsg, setPdfProgressMsg] = useState<string>('');
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  
   const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  // Toast feedback
   const [toasts, setToasts] = useState<{ id: string; msg: string }[]>([]);
+  const [imgFailed, setImgFailed] = useState<boolean>(false);
+  const [infoModalTab, setInfoModalTab] = useState<'support' | 'privacy' | null>(null);
 
-  // Refs
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const pdfInputRef = useRef<HTMLInputElement | null>(null);
+  const [isExtractingAudio, setIsExtractingAudio] = useState<boolean>(false);
+  const [extractionProgress, setExtractionProgress] = useState<number>(0);
 
-  // Load API Key on mount
-  useEffect(() => {
-    const savedSource = localStorage.getItem('gemini_key_source') || 'rotator';
-    setKeySource(savedSource as 'rotator' | 'custom');
+  const videoType = 'news';
 
-    const savedKey = localStorage.getItem('gemini_api_key');
-    if (savedKey) {
-      setApiKey(savedKey);
-      setTempApiKey(savedKey);
-    }
-
-    const savedIdx = getSavedRotatorIndex();
-    setCurrentRotatorIndex(savedIdx);
-
-    // If source is custom and there's no custom key, prompt the user. 
-    // Otherwise keep it collapsed since rotator is active out-of-the-box.
-    if (savedSource === 'custom' && !savedKey) {
-      setShowKeyInput(true);
-    } else {
-      setShowKeyInput(false);
-    }
-  }, []);
-
-  // Update audio source when file changes
-  useEffect(() => {
-    if (uploadedFile) {
-      const url = URL.createObjectURL(uploadedFile);
-      if (audioRef.current) {
-        audioRef.current.src = url;
-        setIsPlaying(false);
-        setCurrentTime(0);
-      }
-      return () => {
-        URL.revokeObjectURL(url);
-      };
-    }
-  }, [uploadedFile]);
-
-  // Helper: Toast Trigger
+  // --- Handlers & Helpers ---
   const showToast = (msg: string) => {
-    const id = Date.now().toString();
+    const id = Math.random().toString(36).substring(2, 9);
     setToasts(prev => [...prev, { id, msg }]);
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
-    }, 3200);
+    }, 3000);
   };
 
-  // Helper: Play unique dual-note chime notification sound
-  const playNotificationChime = () => {
-    try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioCtx) return;
-      
-      const audioCtx = new AudioCtx();
-      
-      // Note 1: E5 (659.25 Hz)
-      const osc1 = audioCtx.createOscillator();
-      const gain1 = audioCtx.createGain();
-      osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(659.25, audioCtx.currentTime);
-      gain1.gain.setValueAtTime(0, audioCtx.currentTime);
-      gain1.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + 0.04);
-      gain1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
-      
-      osc1.connect(gain1);
-      gain1.connect(audioCtx.destination);
-      osc1.start(audioCtx.currentTime);
-      osc1.stop(audioCtx.currentTime + 0.4);
-
-      // Note 2: A5 (880.00 Hz) - offset for melodic chime
-      const osc2 = audioCtx.createOscillator();
-      const gain2 = audioCtx.createGain();
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(880.00, audioCtx.currentTime + 0.07);
-      gain2.gain.setValueAtTime(0, audioCtx.currentTime + 0.07);
-      gain2.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + 0.11);
-      gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.42);
-      
-      osc2.connect(gain2);
-      gain2.connect(audioCtx.destination);
-      osc2.start(audioCtx.currentTime + 0.07);
-      osc2.stop(audioCtx.currentTime + 0.45);
-    } catch (err) {
-      console.warn('Notification audio failed:', err);
-    }
-  };
-
-  // Helper: Save API Key
   const handleSaveApiKey = () => {
-    const key = tempApiKey.trim();
-    if (!key) {
-      showToast('Gemini API Key দিন');
+    const trimmed = tempApiKey.trim();
+    if (!trimmed) {
+      showToast('API Key লিখুন');
       return;
     }
-    localStorage.setItem('gemini_api_key', key);
-    setApiKey(key);
+    setApiKey(trimmed);
+    try {
+      localStorage.setItem('gemini_custom_key', trimmed);
+    } catch (e) {
+      console.warn("Storage save failed:", e);
+    }
+    showToast('API Key সফলভাবে সেভ হয়েছে ✓');
     setShowKeyInput(false);
-    showToast('API Key সেভ হয়েছে ✓');
   };
 
-  // Helper: Erase Key
   const handleClearApiKey = () => {
-    localStorage.removeItem('gemini_api_key');
     setApiKey('');
     setTempApiKey('');
-    setShowKeyInput(true);
+    try {
+      localStorage.removeItem('gemini_custom_key');
+    } catch (e) {
+      console.warn("Storage clear failed:", e);
+    }
     showToast('API Key মুছে ফেলা হয়েছে');
   };
 
-  // Helper: File constraint auditor to protect mobile memory and API payload specs
-  const processSelectedFile = async (file: File) => {
-    if (!file.type.startsWith('audio/') && !file.type.startsWith('video/')) {
-      showToast('শুধুমাত্র অডিও বা ভিডিও ফাইল আপলোড করুন');
-      return;
-    }
-
-    setUploadedFile(file);
-    // Reset previous generation when loading new file
-    setAccumulatedHeadlines([]);
-    setDisplayedHeadlines([]);
-    setTranscript('');
-    showToast('ফাইল সফলভাবে লোড হয়েছে! বিশ্লেষণ করতে নিচের "শিরোনাম ও ক্যাপশন জেনারেট করুন" বাটনে ক্লিক করুন ✓');
-  };
-
-  // Drag handlers
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      processSelectedFile(e.dataTransfer.files[0]);
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play()
+        .then(() => {
+          setIsPlaying(true);
+          setShowFloatingPlayer(true);
+        })
+        .catch(err => {
+          console.error("Audio playback error:", err);
+          showToast('প্লে করতে ব্যর্থ হয়েছে');
+        });
     }
   };
 
-  const triggerFileInputClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      processSelectedFile(e.target.files[0]);
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = Number(e.target.value);
+    if (audioRef.current) {
+      audioRef.current.currentTime = val;
+      setCurrentTime(val);
     }
   };
 
@@ -434,34 +377,49 @@ export default function App() {
     }
   };
 
-  // Audio Playback Controllers
-  const togglePlay = () => {
-    if (!audioRef.current) return;
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      audioRef.current.play()
-        .then(() => {
-          setIsPlaying(true);
-          setShowFloatingPlayer(true);
-        })
-        .catch(err => {
-          console.error("Audio playback error:", err);
-          showToast('প্লে করতে ব্যর্থ হয়েছে');
-        });
+  const processSelectedFile = async (file: File) => {
+    if (!file.type.startsWith('audio/') && !file.type.startsWith('video/')) {
+      showToast('শুধুমাত্র অডিও বা ভিডিও ফাইল আপলোড করুন');
+      return;
+    }
+
+    setUploadedFile(file);
+    setAccumulatedHeadlines([]);
+    setDisplayedHeadlines([]);
+    setTranscript('');
+    showToast('ফাইল সফলভাবে লোড হয়েছে! বিশ্লেষণ করতে নিচের "শিরোনাম ও ক্যাপশন জেনারেট করুন" বাটনে ক্লিক করুন ✓');
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processSelectedFile(e.dataTransfer.files[0]);
     }
   };
 
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = Number(e.target.value);
-    if (audioRef.current) {
-      audioRef.current.currentTime = val;
-      setCurrentTime(val);
+  const triggerFileInputClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      processSelectedFile(e.target.files[0]);
     }
   };
 
-  const seekToTime = (timeString: string) => {
+
+const seekToTime = (timeString: string) => {
     if (!audioRef.current) return;
     const parts = timeString.split(':').map(Number);
     if (parts.length < 2) return;
@@ -535,6 +493,7 @@ export default function App() {
       return;
     }
 
+    let progressInterval: any = null;
     try {
       setIsAnalyzing(true);
       setProgress(10);
@@ -563,9 +522,10 @@ export default function App() {
             setUploadedFile(fileToProcess);
           } catch (extractErr) {
             console.warn("Direct audio extraction failure, fallback to direct upload:", extractErr);
-            if (fileToProcess.size > 22 * 1024 * 1024) {
-              throw new Error("ভিডিওটির আকার অনেক বড় হওয়ায় নিষ্কাশন ব্যর্থ হয়েছে। মোবাইল মেমোরি বাঁচানোর জন্য অনুগ্রহ করে সরাসরি অডিও অথবা ছোট ভিডিও ফাইল আপলোড করুন।");
+            if (fileToProcess.size > 60 * 1024 * 1024) {
+              throw new Error("ভিডিওটির আকার অনেক বড় হওয়ায় নিষ্কাশন ব্যর্থ হয়েছে। অনুগ্রহ করে সরাসরি অডিও অথবা কম রেজোলিউশনের ছোট ভিডিও ফাইল আপলোড করুন।");
             }
+            showToast('অডিও আলাদা করা যায়নি, তাই সরাসরি ভিডিও থেকেই শিরোনাম খোঁজা হচ্ছে...');
           }
         }
 
@@ -580,6 +540,15 @@ export default function App() {
 
         if (videoType === 'news' && !includeWarning) {
           promptText += `\n\nকঠিন ও বিশেষ নির্দেশ: কোনোভাবেই 'warning' (হুঁশিয়ারিমূলক Warning/Action) ক্যাটাগরির শিরোনাম তৈরি করবে না। এই ক্যাটাগরিটি সম্পূর্ণ বাদ দাও। JSON আউটপুটে 'warning' ক্যাটাগরির কোনো এন্ট্রি থাকবে না। শুধু বাকি ৪টি ক্যাটাগরি ('hard', 'quote', 'political', 'curiosity') ব্যবহার করে শিরোনাম তৈরি করো।`;
+        }
+
+        // Apply headline style instruction
+        if (headlineStyle === 'viral') {
+          promptText += `\n\nশৈলী নির্দেশ (Style Format): শিরোনামগুলো অত্যন্ত আকর্ষণীয় এবং সামাজিক মাধ্যমে সাড়া ফেলার মতো (Click-worthy / Virality-focused) হতে হবে। কৌতূহলোদ্দীপক শব্দ ব্যবহার করতে পারো যা দর্শকের কৌতূহল বাড়াবে।`;
+        } else if (headlineStyle === 'serious') {
+          promptText += `\n\nশৈলী নির্দেশ (Style Format): শিরোনামগুলো খুবই প্রাতিষ্ঠানিক, গম্ভীর এবং সরাসরি তথ্যপূর্ণ হতে হবে। কোনো অতিরিক্ত চটকদার বা নাটকীয় শব্দ এড়িয়ে চলো।`;
+        } else if (headlineStyle === 'minimalist') {
+          promptText += `\n\nশৈলী নির্দেশ (Style Format): শিরোনাম সর্বোচ্চ সংক্ষিপ্ত এবং সরল হতে হবে। অপ্রয়োজনীয় সংযোগকারী শব্দ বাদ দিয়ে মাত্র ২-৫টি শব্দের মধ্যে মূল খবরটি সরাসরি প্রকাশ করো।`;
         }
 
         if (speakerName.trim()) {
@@ -611,6 +580,15 @@ export default function App() {
           promptText += `\n\nকঠিন ও বিশেষ নির্দেশ: কোনোভাবেই 'warning' (হুঁশিয়ারিমূলক Warning/Action) ক্যাটাগরির শিরোনাম তৈরি করবে না। এই ক্যাটাগরিটি সম্পূর্ণ বাদ দাও। JSON আউটপুটে 'warning' ক্যাটাগরির কোনো এন্ট্রি থাকবে না। শুধু বাকি ৪টি ক্যাটাগরি ('hard', 'quote', 'political', 'curiosity') ব্যবহার করে শিরোনাম তৈরি করো।`;
         }
 
+        // Apply headline style instruction
+        if (headlineStyle === 'viral') {
+          promptText += `\n\nশৈলী নির্দেশ (Style Format): শিরোনামগুলো অত্যন্ত আকর্ষণীয় এবং সামাজিক মাধ্যমে সাড়া ফেলার মতো (Click-worthy / Virality-focused) হতে হবে। কৌতূহলোদ্দীপক শব্দ ব্যবহার করতে পারো যা দর্শকের কৌতূহল বাড়াবে।`;
+        } else if (headlineStyle === 'serious') {
+          promptText += `\n\nশৈলী নির্দেশ (Style Format): শিরোনামগুলো খুবই প্রাতিষ্ঠানিক, গম্ভীর এবং সরাসরি তথ্যপূর্ণ হতে হবে। কোনো অতিরিক্ত চটকদার বা নাটকীয় শব্দ এড়িয়ে চলো।`;
+        } else if (headlineStyle === 'minimalist') {
+          promptText += `\n\nশৈলী নির্দেশ (Style Format): শিরোনাম সর্বোচ্চ সংক্ষিপ্ত এবং সরল হতে হবে। অপ্রয়োজনীয় সংযোগকারী শব্দ বাদ দিয়ে মাত্র ২-৫টি শব্দের মধ্যে মূল খবরটি সরাসরি প্রকাশ করো।`;
+        }
+
         if (speakerName.trim()) {
           promptText = `খবরের প্রধান ব্যক্তি বা বক্তার নাম/পদবি: "${speakerName.trim()}".
 গুরুত্বপূর্ণ নির্দেশাবলী:
@@ -633,6 +611,19 @@ export default function App() {
       setStatusMessage(inputMode === 'media' 
         ? 'এআই ড্রাইভার প্রস্তুত করা হচ্ছে...' 
         : 'এআই ড্রাইভার প্রস্তুত করা হচ্ছে...');
+
+      // Dynamic virtual progress increment timer to avoid sticking at 70%
+      let progressVal = 70;
+      progressInterval = setInterval(() => {
+        if (progressVal < 96) {
+          progressVal += Math.random() > 0.6 ? 1 : 2;
+          if (progressVal > 96) progressVal = 96;
+          setProgress(progressVal);
+          setStatusMessage(inputMode === 'media'
+            ? `বক্তৃতা ও কন্টেন্ট বিশ্লেষণ করা হচ্ছে... (${progressVal}% সম্পূর্ণ)`
+            : `সংবাদ ও টেক্সট বিশ্লেষণ করা হচ্ছে... (${progressVal}% সম্পূর্ণ)`);
+        }
+      }, 700);
 
       let response: Response | null = null;
       let usedKey = '';
@@ -967,6 +958,27 @@ export default function App() {
       }
 
       let outputHeadlines: Headline[] = parsedData?.headlines || [];
+      
+      // Ensure every headline has a valid category that matches the active videoType/inputMode categories
+      outputHeadlines = outputHeadlines.map(h => {
+        if (!h) return h;
+        if (videoType === 'news') {
+          // If in news mode, fallback general/invalid/warning categories (if warning disallowed) to 'hard' so they are guaranteed to render
+          if (!h.cat || !['hard', 'quote', 'warning', 'political', 'curiosity'].includes(h.cat)) {
+            return { ...h, cat: 'hard' as Headline['cat'] };
+          }
+          if (h.cat === 'warning' && !includeWarning) {
+            return { ...h, cat: 'hard' as Headline['cat'] };
+          }
+        } else {
+          // General mode only supports 'general'
+          if (h.cat !== 'general') {
+            return { ...h, cat: 'general' as Headline['cat'] };
+          }
+        }
+        return h;
+      }).filter(Boolean) as Headline[];
+
       if (!includeWarning) {
         outputHeadlines = outputHeadlines.filter(h => h.cat !== 'warning');
       }
@@ -1013,6 +1025,10 @@ export default function App() {
       showToast('AI রেসপন্স পার্স করতে সমস্যা হয়েছে, আবার চেষ্টা করুন');
       setIsAnalyzing(false);
       setProgress(0);
+    } finally {
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
     }
   };
 
@@ -1037,7 +1053,7 @@ export default function App() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'NewsForge AI Headline',
+          title: 'Headline AI Headline',
           text: text
         });
         showToast('শেয়ার করা হয়েছে! ✓');
@@ -1094,20 +1110,31 @@ export default function App() {
 
   // Filter headlines by Category for categorized visual grouping
   const getCategorizedHeadlines = (catKey: string) => {
-    return displayedHeadlines.filter(h => h && h.cat === catKey);
+    return displayedHeadlines.filter(h => {
+      if (!h) return false;
+      let actualCat = h.cat;
+      if (videoType === 'news') {
+        if (!actualCat || !['hard', 'quote', 'warning', 'political', 'curiosity'].includes(actualCat)) {
+          actualCat = 'hard';
+        }
+      } else {
+        actualCat = 'general';
+      }
+      return actualCat === catKey;
+    });
   };
 
   return (
-    <div className="relative min-h-screen bg-slate-950 text-[#f1f5f9] font-ui overflow-hidden flex flex-col w-full z-10 transition-all duration-300">
+    <div className="relative min-h-screen bg-[#090a0f] text-[#f1f5f9] font-ui overflow-hidden flex flex-col w-full z-10 transition-all duration-300">
       
       {/* Cinematic Ambient Glow Spots */}
       <div className="absolute top-[8%] left-[-10%] w-[500px] h-[500px] rounded-full bg-red-600/[0.04] blur-[130px] pointer-events-none select-none z-0 animate-pulse" style={{ animationDuration: '8s' }} />
-      <div className="absolute top-[40%] right-[-10%] w-[600px] h-[600px] rounded-full bg-indigo-500/[0.02] blur-[150px] pointer-events-none select-none z-0 animate-pulse" style={{ animationDuration: '12s' }} />
+      <div className="absolute top-[40%] right-[-10%] w-[600px] h-[600px] rounded-full bg-red-500/[0.01] blur-[150px] pointer-events-none select-none z-0 animate-pulse" style={{ animationDuration: '12s' }} />
       <div className="absolute bottom-[10%] left-[15%] w-[450px] h-[450px] rounded-full bg-amber-500/[0.015] blur-[120px] pointer-events-none select-none z-0" />
       
       {/* ── FLOATING TOP AUDIO CONTROLLER BAR ── */}
       {uploadedFile && showFloatingPlayer && (
-        <div className="fixed top-0 left-0 right-0 z-[60] bg-[#070b19]/95 border-b border-[#e53e3e]/40 shadow-[0_4px_30px_rgba(229,62,62,0.25)] backdrop-blur-md py-3 px-4 sm:px-6 flex flex-col md:flex-row md:items-center justify-between gap-3 animate-slide-down">
+        <div className="fixed top-0 left-0 right-0 z-[60] bg-[#0a0b10]/95 border-b border-[#e53e3e]/40 shadow-[0_4px_30px_rgba(229,62,62,0.25)] backdrop-blur-md py-3 px-4 sm:px-6 flex flex-col md:flex-row md:items-center justify-between gap-3 animate-slide-down">
           {/* Left panel: File Title & Playback Pulse indicator */}
           <div className="flex items-center gap-3 min-w-0 max-w-full md:max-w-[40%]">
             <div className={`w-3.5 h-3.5 rounded-full shrink-0 flex items-center justify-center transition-all ${isPlaying ? 'bg-[#e53e3e] shadow-[0_0_10px_#e53e3e]' : 'bg-white/10'}`}>
@@ -1221,7 +1248,7 @@ export default function App() {
               {!imgFailed ? (
                 <img 
                   src={logoImg} 
-                  alt="NewsForge Logo" 
+                  alt="Headline AI Logo" 
                   className="w-full h-full object-cover select-none pointer-events-none"
                   referrerPolicy="no-referrer"
                   onError={() => setImgFailed(true)}
@@ -1232,7 +1259,7 @@ export default function App() {
             </div>
             <div>
               <div className="logo-text font-logo text-3xl font-black text-white tracking-[3px] uppercase">
-                NEWS<span className="text-[#e53e3e]">FORGE</span>
+                HEADLINE<span className="text-[#e53e3e]"> AI</span>
               </div>
             </div>
           </div>
@@ -1386,14 +1413,14 @@ export default function App() {
         )}
 
         {/* INPUT MODE SWITCHER TABS WITH HIGH-CONTRAST BORDERS */}
-        <div className="flex bg-[#12131e]/95 border border-[rgba(229,62,62,0.15)] rounded-xl p-1.5 mb-6 relative z-10 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+        <div className="flex flex-col sm:flex-row bg-[#12131e]/95 border border-[rgba(229,62,62,0.15)] rounded-xl p-1.5 gap-1.5 sm:gap-2 mb-6 relative z-10 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
           <button
             onClick={() => {
               setInputMode('media');
               setAccumulatedHeadlines([]);
               setDisplayedHeadlines([]);
             }}
-            className={`flex-1 py-3 text-[11px] sm:text-xs font-ui font-bold rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer select-none ${
+            className={`w-full sm:flex-1 py-3 px-4 text-xs font-ui font-bold rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer select-none ${
               inputMode === 'media'
                 ? 'bg-[#e53e3e] text-white shadow-[0_2px_8px_rgba(229,62,62,0.25)]'
                 : 'text-[#94a3b8] hover:text-white hover:bg-white/5'
@@ -1412,7 +1439,7 @@ export default function App() {
               setAccumulatedHeadlines([]);
               setDisplayedHeadlines([]);
             }}
-            className={`flex-1 py-3 text-[11px] sm:text-xs font-ui font-bold rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer select-none ${
+            className={`w-full sm:flex-1 py-3 px-4 text-xs font-ui font-bold rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer select-none ${
               inputMode === 'text'
                 ? 'bg-[#e53e3e] text-white shadow-[0_2px_8px_rgba(229,62,62,0.25)]'
                 : 'text-[#94a3b8] hover:text-white hover:bg-white/5'
@@ -1646,22 +1673,79 @@ export default function App() {
             </div>
 
             {videoType === 'news' && (
-              <div className="mt-4 border-t border-white/5 pt-3.5 flex items-start gap-3 justify-center max-w-md mx-auto">
-                <input
-                  type="checkbox"
-                  id="include_warning_toggle"
-                  checked={includeWarning}
-                  onChange={(e) => setIncludeWarning(e.target.checked)}
-                  className="w-4.5 h-4.5 accent-[#e53e3e] border border-white/20 bg-black cursor-pointer rounded mt-0.5 scale-110"
-                />
-                <label htmlFor="include_warning_toggle" className="cursor-pointer select-none text-left">
-                  <p className="font-ui text-xs font-bold text-white/95 leading-none">
-                    হুঁশিয়ারিমূলক (Warning) শিরোনাম তৈরি করুন
-                  </p>
-                  <p className="text-[10px] text-[#94a3b8] mt-1 font-ui">
-                    সংবাদ বিশ্লেষণ করার সময় কড়া বা কঠোর হুঁশিয়ারি শিরোনামের ক্যাটাগরি যুক্ত করতে এটি সক্রিয় রাখুন।
-                  </p>
-                </label>
+              <div className="mt-5 border-t border-white/5 pt-4 flex flex-col gap-4 max-w-md mx-auto">
+                {/* Warning Checkbox */}
+                <div className="flex items-start gap-3 justify-center">
+                  <input
+                    type="checkbox"
+                    id="include_warning_toggle"
+                    checked={includeWarning}
+                    onChange={(e) => setIncludeWarning(e.target.checked)}
+                    className="w-4.5 h-4.5 accent-[#e53e3e] border border-white/20 bg-black cursor-pointer rounded mt-0.5 scale-110"
+                  />
+                  <label htmlFor="include_warning_toggle" className="cursor-pointer select-none text-left">
+                    <p className="font-ui text-xs font-bold text-white/95 leading-none font-bangla">
+                      হুঁশিয়ারিমূলক (Warning) শিরোনাম তৈরি করুন
+                    </p>
+                    <p className="text-[10px] text-[#94a3b8] mt-1 font-bangla">
+                      সংবাদ বিশ্লেষণ করার সময় কড়া বা কঠোর হুঁশিয়ারি শিরোনামের ক্যাটাগরি যুক্ত করতে এটি সক্রিয় রাখুন।
+                    </p>
+                  </label>
+                </div>
+
+                {/* Modern Optional Style Selector Panel */}
+                <div className="border-t border-white/5 pt-3.5 flex flex-col items-center justify-center">
+                  <span className="block text-[10px] font-black text-[#e53e3e] uppercase tracking-widest mb-2 font-ui font-bangla">
+                    শিরোনামের ধরন বা উপস্থাপনা রূপ (Headline Aesthetic Style)
+                  </span>
+                  <div className="flex bg-black/45 border border-[rgba(229,62,62,0.12)] rounded-lg p-1 w-full gap-1 select-none">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHeadlineStyle('viral');
+                        showToast('ভাইরাল ও আকর্ষণীয় ক্যাপশন মোড সক্রিয় ✓');
+                      }}
+                      className={`flex-1 py-1.5 text-[11px] font-bold rounded transition-all cursor-pointer font-bangla ${
+                        headlineStyle === 'viral'
+                          ? 'bg-[#e53e3e] text-white shadow-sm font-black'
+                          : 'text-[#94a3b8] hover:text-white hover:bg-white/[0.02]'
+                      }`}
+                      title="সামাজিক যোগাযোগের উপযোগী ভাইরাল শৈলী"
+                    >
+                      ভাইরাল (Viral)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHeadlineStyle('serious');
+                        showToast('তথ্যবহুল ও গম্ভীর অফিশিয়াল মোড সক্রিয় ✓');
+                      }}
+                      className={`flex-1 py-1.5 text-[11px] font-bold rounded transition-all cursor-pointer font-bangla ${
+                        headlineStyle === 'serious'
+                          ? 'bg-[#e53e3e] text-white shadow-sm font-black'
+                          : 'text-[#94a3b8] hover:text-white hover:bg-white/[0.02]'
+                      }`}
+                      title="তথ্যাশ্রয়ী গম্ভীর প্রাতিষ্ঠানিক শৈলী"
+                    >
+                      গম্ভীর (Serious)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHeadlineStyle('minimalist');
+                        showToast('সংক্ষিপ্ত ও মিনিমালিস্ট ক্যাপশন মোড সক্রিয় ✓');
+                      }}
+                      className={`flex-1 py-1.5 text-[11px] font-bold rounded transition-all cursor-pointer font-bangla ${
+                        headlineStyle === 'minimalist'
+                          ? 'bg-[#e53e3e] text-white shadow-sm font-black'
+                          : 'text-[#94a3b8] hover:text-white hover:bg-white/[0.02]'
+                      }`}
+                      title="সর্বোচ্চ ২-৫ শব্দের অতি সংক্ষিপ্ত শৈলী"
+                    >
+                      সংক্ষিপ্ত (Mini)
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
