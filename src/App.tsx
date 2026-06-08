@@ -250,6 +250,32 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
 
+  // Synchronize dynamic Object URL source from uploadedFile into our hidden audio engine
+  useEffect(() => {
+    if (!audioRef.current) return;
+
+    if (uploadedFile) {
+      const url = URL.createObjectURL(uploadedFile);
+      audioRef.current.src = url;
+      audioRef.current.load();
+      
+      // Reset temporal state
+      setCurrentTime(0);
+      setDuration(0);
+      setIsPlaying(false);
+
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    } else {
+      audioRef.current.removeAttribute('src');
+      audioRef.current.load();
+      setCurrentTime(0);
+      setDuration(0);
+      setIsPlaying(false);
+    }
+  }, [uploadedFile]);
+
   const [isExtractingPdf, setIsExtractingPdf] = useState<boolean>(false);
   const [pdfProgressMsg, setPdfProgressMsg] = useState<string>('');
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -645,45 +671,69 @@ const seekToTime = (timeString: string) => {
               : 'এআই ইঞ্জিনে খবর পাঠানো হচ্ছে (আপনার নিজস্ব কী)...');
           }
 
-          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${usedKey}`;
+          // Try selectedModel first, then list of fallbacks if selectedModel is missing/unsupported/not-found
+          const modelsToTry = [selectedModel, 'gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+          const uniqueModels = Array.from(new Set(modelsToTry));
 
-          response = await fetch(endpoint, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              contents: contents,
-              generationConfig: {
-                temperature: 0.8,
-                maxOutputTokens: 8192,
-                responseMimeType: "application/json"
+          let lastResponseText = '';
+          let lastResponseStatus = 200;
+
+          for (const modelName of uniqueModels) {
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${usedKey}`;
+            
+            try {
+              response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  contents: contents,
+                  generationConfig: {
+                    temperature: 0.8,
+                    maxOutputTokens: 8192,
+                    responseMimeType: "application/json"
+                  }
+                })
+              });
+
+              lastResponseStatus = response.status;
+              if (response.ok) {
+                resJson = await response.json();
+                success = true;
+                break;
               }
-            })
-          });
 
-          if (response.ok) {
-            resJson = await response.json();
-            success = true;
-            break;
+              // Read response body to check for model support issues
+              try {
+                lastResponseText = await response.text();
+              } catch (_) {
+                lastResponseText = '';
+              }
+
+              // Switch/break standard key rotation if the key is invalid or rate-limited
+              const isKeyLevelError = lastResponseStatus === 429 || lastResponseStatus === 403 || lastResponseStatus === 401;
+
+              if (isKeyLevelError) {
+                // Switch key
+                break;
+              } else {
+                // Any other errors are likely model-specific (like 404 model not found, 400 bad request/unsupported responseMimeType, etc.)
+                console.warn(`Model ${modelName} returned status ${lastResponseStatus}. Retrying with next fallback model...`);
+                continue;
+              }
+            } catch (innerErr) {
+              console.warn(`Fetch error for model ${modelName}:`, innerErr);
+              // Network/CORS or failed fetch, move to next model or let loop handle key fallback
+            }
           }
 
-          const errorVal = response.status;
-          console.warn(`API Key index ${rotatorIndexToUse} returned status ${errorVal}`);
+          if (success) {
+            break; // Breaks main key rotator loop
+          }
 
-          // Extract response error message if available to detect payload size limits
-          let errorText = '';
-          try {
-            errorText = await response.text();
-          } catch (_) {}
-          
-          let parsedErrorMsg = '';
-          try {
-            const parsedObj = JSON.parse(errorText);
-            parsedErrorMsg = parsedObj?.error?.message || '';
-          } catch (_) {}
-
-          const lowerMsg = parsedErrorMsg.toLowerCase();
+          const errorVal = lastResponseStatus;
+          const lowerMsg = lastResponseText.toLowerCase();
           const isSizeError = errorVal === 413 || 
                               lowerMsg.includes('exceed') || 
                               lowerMsg.includes('limit') || 
@@ -716,7 +766,7 @@ const seekToTime = (timeString: string) => {
           } else {
             // Own custom key returned error
             if (errorVal === 400) {
-              showToast('ফাইল ফরম্যাট বা ইনপুট ডেটা সাপোর্টেড নয়');
+              showToast('ফাইল ফরম্যাট বা ইনপুট ডেটা সাপোর্টেড নয় অথবা মডেল ও কী ম্যাচ করেনি');
             } else if (errorVal === 429) {
               showToast('আপনার API রেট লিমিট অতিক্রম করেছে, একটু পর চেষ্টা করুন');
             } else if (errorVal === 403) {
@@ -1393,8 +1443,11 @@ const seekToTime = (timeString: string) => {
                   onChange={(e) => setSelectedModel(e.target.value)}
                   className="bg-black/80 border border-white/10 rounded px-2.5 py-1.5 focus:outline-none text-[#e53e3e] font-mono text-xs cursor-pointer"
                 >
-                  <option value="gemini-3.5-flash">gemini-3.5-flash (সুপার ফাস্ট)</option>
-                  <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview (উন্নত প্রсеসিং)</option>
+                  <option value="gemini-3.5-flash">gemini-3.5-flash (সুপার ফাস্ট - রেকমেন্ডেড)</option>
+                  <option value="gemini-2.5-flash">gemini-2.5-flash (স্ট্যান্ডার্ড ফাস্ট)</option>
+                  <option value="gemini-2.0-flash">gemini-2.0-flash (আল্ট্রা ফাস্ট)</option>
+                  <option value="gemini-1.5-flash">gemini-1.5-flash (স্ট্যাবল ব্যাকআপ)</option>
+                  <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview (উন্নত প্রসেসিং)</option>
                 </select>
               </div>
               <a 
